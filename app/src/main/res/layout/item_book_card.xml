@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="120dp"
+    android:layout_marginBottom="16dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Book Cover -->
+        <ImageView
+            android:id="@+id/bookCover"
+            android:layout_width="80dp"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/upload_icon"
+            />
+
+        <!-- Label Below the Book Cover -->
+
+        <!-- Book Title and Edit -->
+
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@id/bookCover"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/bookTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Book Title"
+                android:textSize="16sp"
+                android:textColor="#000000"
+                android:background="@null"
+                android:enabled="false"/>
+
+            <ImageButton
+                android:id="@+id/editTitleBtn"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:scaleType="centerInside"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/edit_icon"
+                android:background="@null"
+                app:tint="@color/pink" /> <!-- Removed background for testing -->
+        </LinearLayout>
+
+        <!-- Delete Button (Trash) positioned at top-right -->
+        <ImageButton
+            android:id="@+id/deleteBookBtn"
+            android:layout_width="35dp"
+            android:layout_height="30dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/trash_icon"
+            android:background="@null"
+            app:tint="@color/pink" /> <!-- Removed background for testing -->
+
+        <!-- Open Button -->
+        <Button
+            android:id="@+id/openBookBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:text="Open"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#D47B7B"/>
+    </RelativeLayout>
+</androidx.cardview.widget.CardView>

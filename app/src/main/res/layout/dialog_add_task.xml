@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/taskDialogLayout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/card_bg_white"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:text="Task Title"
+        android:textStyle="bold"
+        android:textColor="#000"
+
+        android:layout_marginBottom="8dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:id="@+id/taskNameInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Task Name"
+        android:background="@drawable/outline_black_box"
+        android:padding="10dp" />
+    <TextView
+        android:text="Task Details"
+        android:textStyle="bold"
+        android:textColor="#000"
+        android:layout_marginBottom="8dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <EditText
+        android:id="@+id/taskDetails"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Dscription"
+        android:background="@drawable/outline_black_box"
+        android:padding="10dp" />
+
+
+    <TextView
+        android:layout_marginTop="16dp"
+        android:text="Add Resources from Shelf"
+        android:textStyle="bold"
+        android:textColor="#000"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <Spinner
+        android:id="@+id/resourceSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/outline_black_box"
+        android:padding="10dp" />
+
+    <Button
+        android:id="@+id/dueDateButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left
+"       android:backgroundTint="#FFC0CB"
+        android:textColor="@color/black"
+        android:layout_marginTop="16dp"
+        android:text="Add Due Date" />
+
+    <LinearLayout
+        android:layout_marginTop="24dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/backButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:backgroundTint="@color/red"
+            android:text="Back"
+            android:layout_weight="1"
+            android:textColor="#fff" />
+
+        <Button
+            android:id="@+id/doneButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Done"
+            android:backgroundTint="@color/green"
+            android:layout_weight="1"
+            android:textColor="#fff" />
+    </LinearLayout>
+</LinearLayout>

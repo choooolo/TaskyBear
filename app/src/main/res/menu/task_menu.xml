@@ -1,0 +1,26 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_edit"
+        android:title="Edit" />
+    <item
+        android:id="@+id/menu_delete"
+        android:title="Delete" />
+    <item
+        android:id="@+id/menu_mark_as"
+        android:title="Mark as">
+        <menu>
+            <item
+                android:id="@+id/mark_complete"
+                android:title="Complete" />
+            <item
+                android:id="@+id/mark_review"
+                android:title="Review" />
+            <item
+                android:id="@+id/mark_progress"
+                android:title="Progress" />
+            <item
+                android:id="@+id/mark_on_hold"
+                android:title="On Hold" />
+        </menu>
+    </item>
+</menu>
