@@ -59,12 +59,13 @@
                         android:textStyle="bold" />
 
                     <TextView
-                        android:id="@+id/username"
+                        android:id="@+id/userNameTextView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Jane Doe"
-                        android:textColor="#EBDCDC"
-                        android:textSize="14sp" />
+                        android:textSize="18sp"
+                        android:padding="16dp" />
+
                 </LinearLayout>
                 <TextView
                     android:id="@+id/dashboardTitle"

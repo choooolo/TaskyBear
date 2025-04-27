@@ -34,16 +34,20 @@
             android:exported="false" />
         <activity
             android:name=".HomeActivity"
-            android:exported="false" />
+            android:exported="true" />
+        <activity
+            android:name=".ChangePasswordActivity"
+            android:exported="true" />
         <activity
             android:name=".ForgotPasswordActivity"
-            android:exported="false" />
+            android:exported="true" />
+
         <activity
             android:name=".LoginActivity"
-            android:exported="false" />
+            android:exported="true" />
         <activity
             android:name=".CreateAccountActivity"
-            android:exported="false" />
+            android:exported="true" />
         <activity
             android:name=".LandingPageActivity"
             android:exported="true">
