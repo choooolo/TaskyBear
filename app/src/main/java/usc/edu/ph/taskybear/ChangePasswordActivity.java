@@ -1,5 +1,6 @@
 package usc.edu.ph.taskybear;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -46,6 +47,9 @@ public class ChangePasswordActivity extends AppCompatActivity {
                     boolean isPasswordUpdated = dbHelper.updatePassword(username, newPassword);
                     if (isPasswordUpdated) {
                         Toast.makeText(ChangePasswordActivity.this, "Password changed successfully", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(ChangePasswordActivity.this, LoginActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK); // Optional: clears stack
+                        startActivity(intent);
                         finish();
                     } else {
                         Toast.makeText(ChangePasswordActivity.this, "Error updating password", Toast.LENGTH_SHORT).show();

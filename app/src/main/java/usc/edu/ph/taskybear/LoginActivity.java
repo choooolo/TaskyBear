@@ -15,7 +15,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText usernameEditText, passwordEditText;
     private Button loginBtn, backButton;
-    private TextView forgotPasswordTextView; // Declare the Forgot Password TextView
+    private TextView forgotPasswordTextView, regButon; // Declare the Forgot Password TextView
     private DatabaseHelper dbHelper;
 
     @Override
@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
         loginBtn = findViewById(R.id.loginBtn);
         backButton = findViewById(R.id.backButton);
         forgotPasswordTextView = findViewById(R.id.forgotpasssword); // Initialize the Forgot Password TextView
-
+        regButon = findViewById(R.id.registerhere);
         dbHelper = new DatabaseHelper(this);
 
         // Login button click logic
@@ -75,6 +75,15 @@ public class LoginActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // Navigate to ForgotPasswordActivity when clicked
                 Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        regButon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Navigate to CreateAccountActivity when clicked
+                Intent intent = new Intent(LoginActivity.this, CreateAccountActivity.class);
                 startActivity(intent);
             }
         });
