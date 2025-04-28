@@ -7,6 +7,7 @@ import static android.os.Build.VERSION.*;
 import android.content.DialogInterface;
 import android.content.Intent;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,64 +27,45 @@ import androidx.core.content.ContextCompat;
 
 public class HomeActivity extends AppCompatActivity {
 
-
     CalendarView calendarView;
-    TextView addTaskText;
+    TextView addTaskText, userNameTextView; // Add userNameTextView
     LinearLayout taskList;
-    private ImageView todobtn,shelfbtn,profilebtn,schedbtn;
+    private ImageView todobtn, shelfbtn, profilebtn, schedbtn;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        // Initialize the views
         todobtn = findViewById(R.id.todobtn);
         shelfbtn = findViewById(R.id.shelfbtn);
         schedbtn = findViewById(R.id.schedbtn);
-
         profilebtn = findViewById(R.id.profilebtn);
         calendarView = findViewById(R.id.calendarView);
         addTaskText = findViewById(R.id.addtask);
         taskList = findViewById(R.id.taskList);
+        userNameTextView = findViewById(R.id.userNameTextView); // Initialize userNameTextView
 
-        todobtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, ToDoActivity.class);
-                startActivity(intent);
-            }
-        });
-        schedbtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, ScheduleActivity.class);
-                startActivity(intent);
-            }
-        });
-        shelfbtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, ShelfActivity.class);
-                startActivity(intent);
-            }
-        });
-        profilebtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, ProfileActivity.class);
-                startActivity(intent);
-            }
-        });
+        // Retrieve the username from SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("UserDetails", MODE_PRIVATE);
+        String userName = sharedPreferences.getString("username", "Jane Doe"); // Default to "Jane Doe" if not found
 
+        // Set the username in the TextView
+        userNameTextView.setText(userName);
 
-        calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
-            @Override
-            public void onSelectedDayChange(@NonNull CalendarView view, int year, int month, int dayOfMonth) {
-                showCalendarTaskDialog(year, month, dayOfMonth);
-            }
-        });
+        // Set up button click listeners (existing code)
+        todobtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ToDoActivity.class)));
+        schedbtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ScheduleActivity.class)));
+        shelfbtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ShelfActivity.class)));
+        profilebtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ProfileActivity.class)));
 
+        // Calendar view listener (existing code)
+        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> showCalendarTaskDialog(year, month, dayOfMonth));
+
+        // Add task click listener (existing code)
         addTaskText.setOnClickListener(view -> showPopupTaskDialog());
     }
-
 
     private void showCalendarTaskDialog(int year, int month, int dayOfMonth) {
         AlertDialog.Builder builder = new AlertDialog.Builder(HomeActivity.this);
@@ -93,10 +75,8 @@ public class HomeActivity extends AppCompatActivity {
         input.setHint("Enter your task here...");
         builder.setView(input);
 
-        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                String task = input.getText().toString();
-            }
+        builder.setPositiveButton("Save", (dialog, id) -> {
+            String task = input.getText().toString();
         });
 
         builder.setNegativeButton("Cancel", null);
@@ -118,7 +98,6 @@ public class HomeActivity extends AppCompatActivity {
         addButton.setOnClickListener(v -> {
             String taskText = editText.getText().toString().trim();
             if (!taskText.isEmpty()) {
-
                 LinearLayout contentLayout = new LinearLayout(this);
                 contentLayout.setOrientation(LinearLayout.HORIZONTAL);
                 contentLayout.setPadding(20, 20, 20, 20);
@@ -158,14 +137,9 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
 
-
         cancelButton.setOnClickListener(v -> dialog.dismiss());
 
         dialog.show();
     }
-
-
-
-
-
 }
+

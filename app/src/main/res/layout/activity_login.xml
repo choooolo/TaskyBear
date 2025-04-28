@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -81,24 +80,36 @@
 
     <Button
         android:id="@+id/loginBtn"
-        android:layout_width="249dp"
-        android:layout_height="51dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="8dp"
-        android:backgroundTint="@color/black"
-        android:padding="12dp"
-        android:text="Login"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/loginCard"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+    android:layout_width="249dp"
+    android:layout_height="51dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="8dp"
+    android:backgroundTint="@color/black"
+    android:padding="12dp"
+    android:text="Login"
+    android:textColor="#FFFFFF"
+    android:textSize="16sp"
+    app:layout_constraintTop_toBottomOf="@id/loginCard"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
+
+    <Button
+        android:id="@+id/backButton"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="Back"
+    android:textColor="#001347"
+    android:textSize="16sp"
+    android:backgroundTint="@android:color/transparent"
+    app:layout_constraintBottom_toTopOf="@id/loginBtn"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
         android:id="@+id/forgotpasssword"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:layout_marginTop="20dp"
         android:layout_marginEnd="172dp"
         android:background="@android:color/transparent"
@@ -106,25 +117,24 @@
         android:focusable="true"
         android:text="@string/forgot_password"
         android:textColor="#001347"
-        android:textSize="14sp"
+        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/loginBtn" />
 
     <TextView
         android:id="@+id/registerhere"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:layout_marginBottom="16dp"
         android:background="@android:color/transparent"
         android:clickable="true"
         android:focusable="true"
         android:text="@string/register_here"
         android:textColor="#8B4513"
-        android:textSize="16sp"
+        android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
