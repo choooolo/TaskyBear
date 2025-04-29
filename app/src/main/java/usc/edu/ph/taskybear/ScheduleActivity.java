@@ -16,7 +16,7 @@ public class ScheduleActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        super.onCreate(savedInstanceState);//qwwdessddsds
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_schedule);
         todobtn = findViewById(R.id.todobtn);
