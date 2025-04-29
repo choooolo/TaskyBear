@@ -21,7 +21,7 @@ public class ScheduleActivity extends AppCompatActivity {
         setContentView(R.layout.activity_schedule);
         todobtn = findViewById(R.id.todobtn);
         shelfbtn = findViewById(R.id.shelfbtn);
-        homebtn = findViewById(R.id.homebtn);
+        homebtn = findViewById(R.id.homebtn);//test
         profilebtn = findViewById(R.id.profilebtn);
         todobtn.setOnClickListener(new View.OnClickListener() {
             @Override
