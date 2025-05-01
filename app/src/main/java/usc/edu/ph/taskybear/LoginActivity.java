@@ -45,7 +45,8 @@ public class LoginActivity extends AppCompatActivity {
                     if (validUser) {
                         SharedPreferences sharedPreferences = getSharedPreferences("UserDetails", MODE_PRIVATE);
                         SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putString("username", "Mark1"); // Replace "Mark1" with the actual username input
+                        editor.putString("username", username); // ✅ use the actual username entered
+                        // Replace "Mark1" with the actual username input
                         editor.apply();
 
                         Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
