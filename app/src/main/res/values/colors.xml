@@ -10,5 +10,8 @@
     <color name="pink">#FFC0CB</color>
     <color name="green">#008000</color>
     <color name="red"> #FF0000</color>
-
+    <color name="active_category_bg">#FFC0CB</color> <!-- Pink color -->
+    <color name="active_category_text">#FFFFFF</color>
+    <color name="default_category_bg">#FFFFFF</color>
+    <color name="default_category_text">#000000</color>
 </resources>

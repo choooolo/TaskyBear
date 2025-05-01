@@ -19,7 +19,7 @@
     <EditText
         android:id="@+id/taskNameInput"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:hint="Task Name"
         android:background="@drawable/outline_black_box"
         android:padding="10dp" />
@@ -34,7 +34,7 @@
     <EditText
         android:id="@+id/taskDetails"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:hint="Dscription"
         android:background="@drawable/outline_black_box"
         android:padding="10dp" />
@@ -51,7 +51,7 @@
     <Spinner
         android:id="@+id/resourceSpinner"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="48dp"
         android:background="@drawable/outline_black_box"
         android:padding="10dp" />
 

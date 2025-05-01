@@ -1,148 +1,154 @@
 <?xml version="1.0" encoding="utf-8"?>
-    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/rootLayout"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    tools:context=".ToDoActivity">
+
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"
-        tools:context=".ToDoActivity">
+        android:layout_above="@id/bottomNavigation"
+        android:fillViewport="true">
 
-        <ScrollView
+        <LinearLayout
+            android:id="@+id/scrollContent"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_above="@id/bottomNavigation"
-            android:fillViewport="true">
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-            <LinearLayout
-                android:id="@+id/scrollContent"
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:layout_height="202dp">
 
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="202dp">
-
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="fitXY"
-                        android:src="@drawable/headr" />
-
-                    <TextView
-                        android:id="@+id/todolist"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginTop="30dp"
-                        android:text="To Do List"
-                        android:textColor="#000000"
-                        android:textSize="30sp"
-                        android:textStyle="bold" />
-
-                    <ImageView
-                        android:id="@+id/menuIcon"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_marginTop="30dp"
-                        android:layout_marginEnd="16dp"
-                        android:contentDescription="Menu"
-                        android:src="@drawable/ic_more_vert" />
-
-                    <LinearLayout
-                        android:id="@+id/categoryButtons"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_below="@id/todolist"
-                        android:layout_marginTop="16dp"
-                        android:gravity="center_horizontal"
-                        android:orientation="horizontal"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:weightSum="4">
-
-                        <!-- Complete -->
-                        <androidx.appcompat.widget.AppCompatButton
-                            android:id="@+id/completetodolist"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/selector_button"
-                            android:paddingHorizontal="8dp"
-                            android:text="Complete"
-                            android:textColor="#000000" />
-
-                        <!-- Review -->
-                        <androidx.appcompat.widget.AppCompatButton
-                            android:id="@+id/reviewtodolist"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/selector_button"
-                            android:paddingHorizontal="8dp"
-                            android:text="Review"
-                            android:textColor="#000000" />
-
-                        <!-- Progress -->
-                        <androidx.appcompat.widget.AppCompatButton
-                            android:id="@+id/progresstodolist"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_marginEnd="8dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/selector_button"
-                            android:paddingHorizontal="8dp"
-                            android:text="Progress"
-                            android:textColor="#000000" />
-
-                        <!-- On Hold -->
-                        <androidx.appcompat.widget.AppCompatButton
-                            android:id="@+id/onholdtodolist"
-                            android:layout_width="0dp"
-                            android:layout_height="40dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/selector_button"
-                            android:paddingHorizontal="8dp"
-                            android:text="On Hold"
-                            android:textColor="#000000" />
-                    </LinearLayout>
-
-                </RelativeLayout>
-
-                <LinearLayout
-                    android:id="@+id/tasklistcontainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="17dp"
-                    android:layout_marginTop="-40dp"
-                    android:orientation="vertical"
-                    android:padding="16dp" />
-                <!-- RecyclerView for Task List -->
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/taskRecyclerView"
+                <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_marginBottom="80dp"/>
+                    android:scaleType="fitXY"
+                    android:src="@drawable/headr" />
 
-            </LinearLayout>
-        </ScrollView>
+                <TextView
+                    android:id="@+id/todolist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="30dp"
+                    android:text="To Do List"
+                    android:textColor="#000000"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
 
-        <ImageButton
-            android:id="@+id/addTaskButton"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_alignParentEnd="true"
-            android:layout_margin="16dp"
-            android:layout_above="@id/bottomNavigation"
-            android:background="@drawable/rounded_add_button"
-            android:src="@drawable/add_icon"
-            android:scaleType="centerInside"
-            android:contentDescription="Add Task"
-            android:elevation="8dp" />
-        <!-- Bottom Navigation -->
+                <ImageView
+                    android:id="@+id/menuIcon"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="30dp"
+                    android:layout_marginEnd="16dp"
+                    android:contentDescription="Menu"
+                    android:src="@drawable/ic_more_vert" />
+
+                <LinearLayout
+                    android:id="@+id/categoryButtons"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/todolist"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center_horizontal"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:weightSum="4">
+
+                    <!-- Complete -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/completetodolist"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/selector_button"
+                        android:paddingHorizontal="8dp"
+                        android:text="Complete"
+                        android:textColor="#000000"
+                        android:contentDescription="Filter by Complete tasks" />
+
+                    <!-- Review -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/reviewtodolist"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/selector_button"
+                        android:paddingHorizontal="8dp"
+                        android:text="Review"
+                        android:textColor="#000000"
+                        android:contentDescription="Filter by Review tasks" />
+
+                    <!-- Progress -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/progresstodolist"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/selector_button"
+                        android:paddingHorizontal="8dp"
+                        android:text="Progress"
+                        android:textColor="#000000"
+                        android:contentDescription="Filter by In Progress tasks" />
+
+                    <!-- On Hold -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/onholdtodolist"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/selector_button"
+                        android:paddingHorizontal="8dp"
+                        android:text="On Hold"
+                        android:textColor="#000000"
+                        android:contentDescription="Filter by On Hold tasks" />
+                </LinearLayout>
+
+            </RelativeLayout>
+
+            <LinearLayout
+                android:id="@+id/tasklistcontainer"
+                android:layout_width="match_parent"
+                android:layout_height="17dp"
+                android:layout_marginTop="-40dp"
+                android:orientation="vertical"
+                android:padding="16dp" />
+
+            <!-- RecyclerView for Task List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/taskRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="80dp"
+                android:contentDescription="List of tasks" />
+        </LinearLayout>
+    </ScrollView>
+
+    <ImageButton
+        android:id="@+id/addTaskButton"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="16dp"
+        android:layout_above="@id/bottomNavigation"
+        android:background="@drawable/rounded_add_button"
+        android:src="@drawable/add_icon"
+        android:scaleType="centerInside"
+        android:contentDescription="Add Task"
+        android:elevation="8dp" />
+
+    <!-- Bottom Navigation -->
     <RelativeLayout
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
@@ -256,6 +262,7 @@
                     android:textSize="12sp"
                     android:textStyle="bold"/>
             </LinearLayout>
+
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"

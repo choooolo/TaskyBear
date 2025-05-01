@@ -62,7 +62,7 @@
                         android:id="@+id/userNameTextView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Jane Doe"
+                        android:text=""
                         android:textSize="18sp"
                         android:padding="16dp" />
 
