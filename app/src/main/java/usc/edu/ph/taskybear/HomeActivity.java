@@ -75,7 +75,7 @@ public class HomeActivity extends AppCompatActivity {
         DatabaseHelper databaseHelper = new DatabaseHelper(this);
         List<Task> tasks = databaseHelper.getTasksForDateAndCategory(userId, selectedDate, "Progress");
 
-        // Update UI
+        // Update UI /a/sdsadad
         taskList.removeAllViews();
 
         if (tasks.isEmpty()) {
