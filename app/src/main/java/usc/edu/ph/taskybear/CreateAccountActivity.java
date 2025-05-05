@@ -24,7 +24,7 @@ public class CreateAccountActivity extends AppCompatActivity {
         setContentView(R.layout.activity_create_account);
 
         usernameEditText = findViewById(R.id.usernameEditText); // make sure your XML has this ID
-        passwordEditText = findViewById(R.id.passwordEditText);
+        passwordEditText = findViewById(R.id.passwordEditText); // a
         createAccountButton = findViewById(R.id.createAccountButton);
         alreadyHaveAccount = findViewById(R.id.alreadyhaveaccount);
 
