@@ -11,7 +11,6 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,144 +20,154 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-
-
 public class ToDoActivity extends AppCompatActivity {
-    // Class variables (declare here)
-    ImageButton openDialogButton;
-    LinearLayout taskListContainer;
-    LayoutInflater inflater;
-    RecyclerView recyclerView;
-    TaskAdapter adapter;
-    ArrayList<Task> taskList;
-    Button[] buttons;
-    Button selectedButton;
-    private ImageView homebtn, shelfbtn,profilebtn, schedbtn;
+    private ImageButton openDialogButton;
+    private RecyclerView recyclerView;
+    private TaskAdapter adapter;
+    private ArrayList<Task> taskList;
+    private ImageView homebtn, shelfbtn, profilebtn, schedbtn;
+    private Button completeBtn, reviewBtn, progressBtn, onHoldBtn;
+    private DatabaseHelper dbHelper;
+    private String currentCategory = "Progress";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_to_do);
 
+        // Initialize views and buttons
+        completeBtn = findViewById(R.id.completetodolist);
+        reviewBtn = findViewById(R.id.reviewtodolist);
+        progressBtn = findViewById(R.id.progresstodolist);
+        onHoldBtn = findViewById(R.id.onholdtodolist);
         homebtn = findViewById(R.id.homebtn);
         shelfbtn = findViewById(R.id.shelfbtn);
         profilebtn = findViewById(R.id.profilebtn);
         schedbtn = findViewById(R.id.schedbtn);
-
         openDialogButton = findViewById(R.id.addTaskButton);
-        taskListContainer = findViewById(R.id.tasklistcontainer);
         recyclerView = findViewById(R.id.taskRecyclerView);
 
-        homebtn.setOnClickListener(v -> {
-            startActivity(new Intent(ToDoActivity.this, HomeActivity.class));
-        });
+        dbHelper = new DatabaseHelper(this);
 
-        shelfbtn.setOnClickListener(v -> {
-            startActivity(new Intent(ToDoActivity.this, ShelfActivity.class));
-        });
-        profilebtn.setOnClickListener(v -> {
-            startActivity(new Intent(ToDoActivity.this, ProfileActivity.class));
-        });
-        schedbtn.setOnClickListener(v -> {
-            startActivity(new Intent(ToDoActivity.this, ScheduleActivity.class));
-        });
-
-
-
-        inflater = LayoutInflater.from(this);
-        openDialogButton = findViewById(R.id.addTaskButton);
-        taskListContainer = findViewById(R.id.tasklistcontainer);
-        ImageView homebtn = findViewById(R.id.homebtn);
-        ImageView shelfbtn = findViewById(R.id.shelfbtn);
-        shelfbtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ToDoActivity.this, ShelfActivity.class);
-                startActivity(intent);
-            }
-        });
-
-
-        recyclerView = findViewById(R.id.taskRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         taskList = new ArrayList<>();
-        buttons = new Button[] {
-                findViewById(R.id.completetodolist),
-                findViewById(R.id.reviewtodolist),
-                findViewById(R.id.progresstodolist),
-                findViewById(R.id.onholdtodolist)
-        };
-
-        for (Button btn : buttons) {
-            btn.setOnClickListener(v -> {
-                for (Button b : buttons) {
-                    b.setSelected(false);
-                }
-
-                v.setSelected(true);
-                selectedButton = (Button) v;
-            });
-        }
         adapter = new TaskAdapter(this, taskList, new TaskAdapter.TaskActionListener() {
             @Override
             public void onEdit(Task task) {
-                int position = taskList.indexOf(task);
-                if (position != -1) {
-                    showEditTaskDialog(task, position);
-                }
+                showEditTaskDialog(task);
             }
-
 
             @Override
             public void onDelete(Task task) {
-                // delete button
-                taskList.remove(task);
-                adapter.notifyDataSetChanged();
+                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+                dbHelper.deleteTask(task.getTitle(), userId);
+                reloadTasks(userId);
             }
 
             @Override
             public void onCategoryChange(Task task, String newCategory) {
-                //change category code here
                 task.setCategory(newCategory);
+                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+                dbHelper.updateTaskCategory(task.getTitle(), newCategory, userId);
                 adapter.notifyDataSetChanged();
             }
         });
         recyclerView.setAdapter(adapter);
 
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+
+        if (getIntent().hasExtra("filterCategory")) {
+            currentCategory = getIntent().getStringExtra("filterCategory");
+        }
+
+        reloadTasks(userId);
+        updateButtonStates(currentCategory);
         openDialogButton.setOnClickListener(v -> showAddTaskDialog());
+
+        homebtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, HomeActivity.class)));
+        shelfbtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, ShelfActivity.class)));
+        profilebtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, ProfileActivity.class)));
+        schedbtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, ScheduleActivity.class)));
+
+        completeBtn.setOnClickListener(v -> setCategoryFilter("Complete"));
+        reviewBtn.setOnClickListener(v -> setCategoryFilter("Review"));
+        progressBtn.setOnClickListener(v -> setCategoryFilter("Progress"));
+        onHoldBtn.setOnClickListener(v -> setCategoryFilter("On Hold"));
+    }
+
+    private void setCategoryFilter(String category) {
+        currentCategory = category;
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        reloadTasks(userId);
+        updateButtonStates(category);
+    }
+
+    private void updateButtonStates(String selectedCategory) {
+        resetButtonStyles();
+
+        switch(selectedCategory) {
+            case "Complete":
+                completeBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
+                completeBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                break;
+            case "Review":
+                reviewBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
+                reviewBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                break;
+            case "Progress":
+                progressBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
+                progressBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                break;
+            case "On Hold":
+                onHoldBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
+                onHoldBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                break;
+        }
+    }
+
+    private void resetButtonStyles() {
+        int defaultBg = getResources().getColor(R.color.default_category_bg);
+        int defaultText = getResources().getColor(R.color.default_category_text);
+
+        completeBtn.setBackgroundColor(defaultBg);
+        completeBtn.setTextColor(defaultText);
+        reviewBtn.setBackgroundColor(defaultBg);
+        reviewBtn.setTextColor(defaultText);
+        progressBtn.setBackgroundColor(defaultBg);
+        progressBtn.setTextColor(defaultText);
+        onHoldBtn.setBackgroundColor(defaultBg);
+        onHoldBtn.setTextColor(defaultText);
     }
 
     private void showAddTaskDialog() {
-        View dialogView = inflater.inflate(R.layout.dialog_add_task, null);
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(dialogView);
-        AlertDialog dialog = builder.create();
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(dialogView).create();
         dialog.show();
 
         EditText taskNameInput = dialogView.findViewById(R.id.taskNameInput);
         Spinner resourceSpinner = dialogView.findViewById(R.id.resourceSpinner);
-        EditText taskdetails = dialogView.findViewById(R.id.taskDetails);
+        EditText taskDetails = dialogView.findViewById(R.id.taskDetails);
         Button dueDateButton = dialogView.findViewById(R.id.dueDateButton);
         Button backButton = dialogView.findViewById(R.id.backButton);
         Button doneButton = dialogView.findViewById(R.id.doneButton);
 
-       //Make this dynamic based on the shelf
         ArrayList<String> resources = new ArrayList<>();
         resources.add("None");
-        resources.add("Resoource 1");
+        resources.add("Resource 1");
         resources.add("Resource 2");
-        ArrayAdapter<String> resourceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resources);
-        resourceSpinner.setAdapter(resourceAdapter);
-
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resources);
+        resourceSpinner.setAdapter(adapter);
 
         final Calendar calendar = Calendar.getInstance();
         final String[] selectedDate = {""};
         dueDateButton.setOnClickListener(view -> {
             DatePickerDialog datePicker = new DatePickerDialog(ToDoActivity.this,
-                    (DatePicker view1, int year, int month, int dayOfMonth) -> {
+                    (view1, year, month, dayOfMonth) -> {
                         selectedDate[0] = dayOfMonth + " " + getMonthName(month) + " " + year;
                         dueDateButton.setText(selectedDate[0]);
                     },
@@ -171,27 +180,38 @@ public class ToDoActivity extends AppCompatActivity {
         backButton.setOnClickListener(view -> dialog.dismiss());
 
         doneButton.setOnClickListener(view -> {
-            String taskName = taskNameInput.getText().toString();
-            String taskDetailText = taskdetails.getText().toString();
+            String taskName = taskNameInput.getText().toString().trim();
+            String taskDetailText = taskDetails.getText().toString().trim();
             String date = selectedDate[0];
+
+            // Validation checks
+            if (taskName.isEmpty()) {
+                Toast.makeText(this, "Please enter a task title", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (taskDetailText.isEmpty()) {
+                Toast.makeText(this, "Please enter task details", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (date.isEmpty()) {
+                Toast.makeText(this, "Please select a due date", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             String selectedResource = resourceSpinner.getSelectedItem().toString();
+            int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
 
+            Task newTask = new Task(taskName, taskDetailText, formatDateForStorage(date), selectedResource, "Progress");
+            dbHelper.insertTask(newTask, userId);
 
-            Task newTask = new Task(taskName, taskDetailText, date, selectedResource, "Progress");
-            taskList.add(newTask);
-
-
-            adapter.notifyItemInserted(taskList.size() - 1);
-
+            reloadTasks(userId);
             dialog.dismiss();
         });
     }
 
-    private void showEditTaskDialog(Task task, int position) {
-        View dialogView = inflater.inflate(R.layout.dialog_add_task, null);
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setView(dialogView);
-        AlertDialog dialog = builder.create();
+    private void showEditTaskDialog(Task task) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(dialogView).create();
         dialog.show();
 
         EditText taskNameInput = dialogView.findViewById(R.id.taskNameInput);
@@ -207,10 +227,10 @@ public class ToDoActivity extends AppCompatActivity {
 
         ArrayList<String> resources = new ArrayList<>();
         resources.add("None");
-        resources.add("Resoource 1");
+        resources.add("Resource 1");
         resources.add("Resource 2");
-        ArrayAdapter<String> resourceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resources);
-        resourceSpinner.setAdapter(resourceAdapter);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resources);
+        resourceSpinner.setAdapter(adapter);
 
         int resourceIndex = resources.indexOf(task.getResource());
         if (resourceIndex >= 0) {
@@ -222,7 +242,7 @@ public class ToDoActivity extends AppCompatActivity {
 
         dueDateButton.setOnClickListener(view -> {
             DatePickerDialog datePicker = new DatePickerDialog(ToDoActivity.this,
-                    (DatePicker view1, int year, int month, int dayOfMonth) -> {
+                    (view1, year, month, dayOfMonth) -> {
                         selectedDate[0] = dayOfMonth + " " + getMonthName(month) + " " + year;
                         dueDateButton.setText(selectedDate[0]);
                     },
@@ -235,19 +255,60 @@ public class ToDoActivity extends AppCompatActivity {
         backButton.setOnClickListener(view -> dialog.dismiss());
 
         doneButton.setOnClickListener(view -> {
-            task.setTitle(taskNameInput.getText().toString());
-            task.setDetails(taskDetailsInput.getText().toString());
-            task.setDate(selectedDate[0]);
+            String taskName = taskNameInput.getText().toString().trim();
+            String taskDetailText = taskDetailsInput.getText().toString().trim();
+            String date = selectedDate[0];
+
+            // Validation checks
+            if (taskName.isEmpty()) {
+                Toast.makeText(this, "Please enter a task title", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (taskDetailText.isEmpty()) {
+                Toast.makeText(this, "Please enter task details", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (date.isEmpty()) {
+                Toast.makeText(this, "Please select a due date", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            task.setTitle(taskName);
+            task.setDetails(taskDetailText);
+            task.setDate(formatDateForStorage(date));
             task.setResource(resourceSpinner.getSelectedItem().toString());
 
-            adapter.notifyItemChanged(position);
+            int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+            dbHelper.updateTask(task, userId);
+
+            reloadTasks(userId);
             dialog.dismiss();
         });
     }
 
-
+    private String formatDateForStorage(String date) {
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("dd MMM yyyy");
+            SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");
+            return outputFormat.format(inputFormat.parse(date));
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 
     private String getMonthName(int month) {
-        return new java.text.DateFormatSymbols().getMonths()[month];
+        String[] months = new String[]{
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        };
+        return months[month];
+    }
+
+    private void reloadTasks(int userId) {
+        ArrayList<Task> tasks = dbHelper.getTasksByCategory(userId, currentCategory);
+        taskList.clear();
+        taskList.addAll(tasks);
+        adapter.notifyDataSetChanged();
     }
 }

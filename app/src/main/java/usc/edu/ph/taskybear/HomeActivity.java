@@ -1,145 +1,129 @@
 package usc.edu.ph.taskybear;
 
-import static android.os.Build.*;
-import static android.os.Build.VERSION.*;
-
-
-import android.content.DialogInterface;
 import android.content.Intent;
-
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.Button;
 import android.widget.CalendarView;
-import android.widget.EditText;
-
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
-import androidx.core.content.ContextCompat;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
-    CalendarView calendarView;
-    TextView addTaskText, userNameTextView; // Add userNameTextView
-    LinearLayout taskList;
+    private TextView userNameTextView;
+    private LinearLayout taskList;
     private ImageView todobtn, shelfbtn, profilebtn, schedbtn;
+    private CalendarView calendarView;
+    private DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        // Initialize the views
+        // Initialize views
+        calendarView = findViewById(R.id.calendarView);
         todobtn = findViewById(R.id.todobtn);
         shelfbtn = findViewById(R.id.shelfbtn);
         schedbtn = findViewById(R.id.schedbtn);
         profilebtn = findViewById(R.id.profilebtn);
-        calendarView = findViewById(R.id.calendarView);
-        addTaskText = findViewById(R.id.addtask);
         taskList = findViewById(R.id.taskList);
-        userNameTextView = findViewById(R.id.userNameTextView); // Initialize userNameTextView
+        userNameTextView = findViewById(R.id.userNameTextView);
 
-        // Retrieve the username from SharedPreferences
+        // Get username from SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("UserDetails", MODE_PRIVATE);
-        String userName = sharedPreferences.getString("username", "Jane Doe"); // Default to "Jane Doe" if not found
-
-        // Set the username in the TextView
+        String userName = sharedPreferences.getString("username", "Jane Doe");
         userNameTextView.setText(userName);
 
-        // Set up button click listeners (existing code)
-        todobtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ToDoActivity.class)));
-        schedbtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ScheduleActivity.class)));
-        shelfbtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ShelfActivity.class)));
-        profilebtn.setOnClickListener(v -> startActivity(new Intent(HomeActivity.this, ProfileActivity.class)));
+        // Set up button click listeners
+        todobtn.setOnClickListener(v -> startActivity(new Intent(this, ToDoActivity.class)));
+        schedbtn.setOnClickListener(v -> startActivity(new Intent(this, ScheduleActivity.class)));
+        shelfbtn.setOnClickListener(v -> startActivity(new Intent(this, ShelfActivity.class)));
+        profilebtn.setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
 
-        // Calendar view listener (existing code)
-        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> showCalendarTaskDialog(year, month, dayOfMonth));
-
-        // Add task click listener (existing code)
-        addTaskText.setOnClickListener(view -> showPopupTaskDialog());
-    }
-
-    private void showCalendarTaskDialog(int year, int month, int dayOfMonth) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(HomeActivity.this);
-        builder.setTitle("Edit Tasks for " + (month + 1) + "/" + dayOfMonth + "/" + year);
-
-        final EditText input = new EditText(HomeActivity.this);
-        input.setHint("Enter your task here...");
-        builder.setView(input);
-
-        builder.setPositiveButton("Save", (dialog, id) -> {
-            String task = input.getText().toString();
-        });
-
-        builder.setNegativeButton("Cancel", null);
-        builder.show();
-    }
-
-    private void showPopupTaskDialog() {
-        LayoutInflater inflater = LayoutInflater.from(this);
-        View dialogView = inflater.inflate(R.layout.task_input_dialog, null);
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(dialogView)
-                .create();
-
-        EditText editText = dialogView.findViewById(R.id.editTextTask);
-        Button addButton = dialogView.findViewById(R.id.addButton);
-        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
-
-        addButton.setOnClickListener(v -> {
-            String taskText = editText.getText().toString().trim();
-            if (!taskText.isEmpty()) {
-                LinearLayout contentLayout = new LinearLayout(this);
-                contentLayout.setOrientation(LinearLayout.HORIZONTAL);
-                contentLayout.setPadding(20, 20, 20, 20);
-                contentLayout.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
-
-                TextView taskContent = new TextView(this);
-                taskContent.setText(taskText);
-                taskContent.setTextSize(16f);
-                taskContent.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-
-                TextView deleteBtn = new TextView(this);
-                deleteBtn.setText("✖");
-                deleteBtn.setTextSize(18f);
-                deleteBtn.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark));
-                deleteBtn.setPadding(16, 0, 0, 0);
-
-                CardView taskCard = new CardView(this);
-                taskCard.setRadius(16f);
-                taskCard.setCardElevation(6f);
-                taskCard.setCardBackgroundColor(ContextCompat.getColor(this, android.R.color.white));
-
-                contentLayout.addView(taskContent);
-                contentLayout.addView(deleteBtn);
-                taskCard.addView(contentLayout);
-
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
-                params.topMargin = 16;
-
-                taskList.addView(taskCard, params);
-
-                deleteBtn.setOnClickListener(del -> taskList.removeView(taskCard));
-
-                dialog.dismiss();
+        // Calendar date change listener
+        calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
+            @Override
+            public void onSelectedDayChange(CalendarView view, int year, int month, int dayOfMonth) {
+                Calendar selectedDate = Calendar.getInstance();
+                selectedDate.set(year, month, dayOfMonth);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                loadTasksForDate(sdf.format(selectedDate.getTime()));
             }
         });
 
-        cancelButton.setOnClickListener(v -> dialog.dismiss());
+        // Load initial tasks for current calendar date
+        Calendar initialCalendar = Calendar.getInstance();
+        initialCalendar.setTimeInMillis(calendarView.getDate());
+        loadTasksForDate(new SimpleDateFormat("yyyy-MM-dd").format(initialCalendar.getTime()));
 
-        dialog.show();
+        // Show task summary counts
+        showTaskSummaryCounts();
+    }
+
+    private void loadTasksForDate(String selectedDate) {
+        // Get user ID from SharedPreferences
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+
+        // Get tasks from database
+        DatabaseHelper databaseHelper = new DatabaseHelper(this);
+        List<Task> tasks = databaseHelper.getTasksForDateAndCategory(userId, selectedDate, "Progress");
+
+        // Update UI
+        taskList.removeAllViews();
+
+        if (tasks.isEmpty()) {
+            TextView tv = new TextView(this);
+            tv.setText("No tasks in progress for " + selectedDate);
+            taskList.addView(tv);
+        } else {
+            for (Task task : tasks) {
+                TextView taskView = new TextView(this);
+                taskView.setText(task.getTitle());
+                taskView.setTextSize(16);
+                taskView.setPadding(20, 10, 20, 10);
+                taskList.addView(taskView);
+            }
+        }
+    }
+
+    private void showTaskSummaryCounts() {
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        DatabaseHelper db = new DatabaseHelper(this);
+
+        // Get task counts by category
+        int progressCount = db.getTaskCountByCategory(userId, "Progress");
+        int reviewCount = db.getTaskCountByCategory(userId, "Review");
+        int holdCount = db.getTaskCountByCategory(userId, "On Hold");
+        int completeCount = db.getTaskCountByCategory(userId, "Complete");
+
+        // Set text views for task counts
+        TextView progressCountText = findViewById(R.id.progressCount);
+        TextView reviewCountText = findViewById(R.id.reviewCount);
+        TextView holdCountText = findViewById(R.id.onholdCount);
+        TextView completeCountText = findViewById(R.id.completedCount);
+
+        progressCountText.setText(progressCount + " Tasks");
+        reviewCountText.setText(reviewCount + " Tasks");
+        holdCountText.setText(holdCount + " Tasks");
+        completeCountText.setText(completeCount + " Tasks");
+
+        // Set click listeners for category filters
+        findViewById(R.id.progressCount).setOnClickListener(v -> openToDoWithCategory("Progress"));
+        findViewById(R.id.reviewCount).setOnClickListener(v -> openToDoWithCategory("Review"));
+        findViewById(R.id.onholdCount).setOnClickListener(v -> openToDoWithCategory("On Hold"));
+        findViewById(R.id.completedCount).setOnClickListener(v -> openToDoWithCategory("Complete"));
+    }
+
+    private void openToDoWithCategory(String category) {
+        Intent intent = new Intent(this, ToDoActivity.class);
+        intent.putExtra("filterCategory", category);
+        startActivity(intent);
     }
 }
-
