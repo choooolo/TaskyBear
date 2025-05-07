@@ -396,4 +396,42 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return tasks;
     }
 
+    public List<Task> getAllTasksForUser(int userId) {
+        List<Task> taskList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery("SELECT * FROM tasks WHERE user_id = ?", new String[]{String.valueOf(userId)});
+
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow("task_id"));
+                String title = cursor.getString(cursor.getColumnIndexOrThrow("title"));
+                String details = cursor.getString(cursor.getColumnIndexOrThrow("details"));
+                String date = cursor.getString(cursor.getColumnIndexOrThrow("date"));
+                String resource = cursor.getString(cursor.getColumnIndexOrThrow("resource"));
+                String category = cursor.getString(cursor.getColumnIndexOrThrow("category"));
+
+                // Create Task object with full constructor
+                Task task = new Task(title, details, date, resource, category);
+                task.setId(id); // Set the task ID separately
+                taskList.add(task);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+        return taskList;
+    }
+
+    public int getUserId(String username) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT id FROM users WHERE username = ?", new String[]{username});
+        int userId = -1;
+        if (cursor.moveToFirst()) {
+            userId = cursor.getInt(0);
+        }
+        cursor.close();
+        db.close();
+        return userId;
+    }
 }

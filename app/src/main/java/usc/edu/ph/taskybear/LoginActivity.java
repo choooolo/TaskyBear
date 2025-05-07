@@ -43,16 +43,23 @@ public class LoginActivity extends AppCompatActivity {
                 } else {
                     boolean validUser = dbHelper.checkUser(username, password);
                     if (validUser) {
-                        SharedPreferences sharedPreferences = getSharedPreferences("UserDetails", MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putString("username", username); // ✅ use the actual username entered
-                        // Replace "Mark1" with the actual username input
-                        editor.apply();
+                        // Get the user ID based on the entered username
+                        int userId = dbHelper.getUserId(username);
+                        if (userId != -1) {
+                            // Save the user ID in SharedPreferences for use in other activities
+                            SharedPreferences sharedPreferences = getSharedPreferences("TaskyPrefs", MODE_PRIVATE);
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putInt("userId", userId);
+                            editor.putString("username", username); // ✅ Save the actual username
+                            editor.apply();
 
-                        Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                        startActivity(intent);
-                        finish();
+                            Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            Toast.makeText(LoginActivity.this, "User ID not found. Please try again.", Toast.LENGTH_SHORT).show();
+                        }
                     } else {
                         Toast.makeText(LoginActivity.this, "Invalid Username or Password", Toast.LENGTH_SHORT).show();
                     }
@@ -89,11 +96,6 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-
-
     }
-
-
-
 
 }

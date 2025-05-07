@@ -1,7 +1,10 @@
 package usc.edu.ph.taskybear;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.CalendarView;
 import android.widget.ImageView;
@@ -9,10 +12,18 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
+
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
+
+import java.util.concurrent.TimeUnit;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -65,6 +76,18 @@ public class HomeActivity extends AppCompatActivity {
 
         // Show task summary counts
         showTaskSummaryCounts();
+
+        // Request POST_NOTIFICATIONS permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
+            }
+        }
+
+        // Schedule task reminders when the user logs in
+        scheduleTaskReminderWorker();
     }
 
     private void loadTasksForDate(String selectedDate) {
@@ -125,5 +148,18 @@ public class HomeActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ToDoActivity.class);
         intent.putExtra("filterCategory", category);
         startActivity(intent);
+    }
+
+    private void scheduleTaskReminderWorker() {
+        // Cancel any existing work to avoid duplicate notifications
+        WorkManager.getInstance(this).cancelAllWorkByTag("TaskReminder");
+
+        WorkRequest taskReminderWorkRequest = new PeriodicWorkRequest.Builder(
+                TaskReminderWorker.class,
+                15,
+                TimeUnit.SECONDS
+        ).addTag("TaskReminder").build();
+
+        WorkManager.getInstance(this).enqueue(taskReminderWorkRequest);
     }
 }
