@@ -22,43 +22,25 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TaskyBear"
         tools:targetApi="31">
-        <activity
-            android:name=".ScheduleActivity"
-            android:exported="true" />
-        <activity
-            android:name=".ProfileActivity"
-            android:exported="true" />
-        <activity
-            android:name=".ShelfActivity"
-            android:exported="true" />
-        <activity
-            android:name=".ToDoActivity"
-            android:exported="true" />
-        <activity
-            android:name=".HomeActivity"
-            android:exported="true" />
-        <activity
-            android:name=".ChangePasswordActivity"
-            android:exported="true" />
-        <activity
-            android:name=".ForgotPasswordActivity"
-            android:exported="true" />
 
-        <activity
-            android:name=".LoginActivity"
-            android:exported="true" />
-        <activity
-            android:name=".CreateAccountActivity"
-            android:exported="true" />
-        <activity
-            android:name=".LandingPageActivity"
-            android:exported="true">
+        <activity android:name=".ScheduleActivity" android:exported="false" />
+        <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".ShelfActivity" android:exported="false" />
+        <activity android:name=".ToDoActivity" android:exported="false" />
+        <activity android:name=".HomeActivity" android:exported="true" />
+        <activity android:name=".ChangePasswordActivity" android:exported="true" />
+        <activity android:name=".ForgotPasswordActivity" android:exported="true" />
+        <activity android:name=".LoginActivity" android:exported="true" />
+        <activity android:name=".CreateAccountActivity" android:exported="true" />
+        <activity android:name=".LandingPageActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".CalendarViewActivity" android:exported="false" />
+
     </application>
 
 </manifest>
