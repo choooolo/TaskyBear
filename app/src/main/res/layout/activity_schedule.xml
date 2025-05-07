@@ -8,7 +8,7 @@
     android:background="#FFFFFF"
     tools:context=".ScheduleActivity">
 
-    <!-- Static Header -->
+    <!-- Static Header aaa
     <RelativeLayout
         android:id="@+id/header"
         android:layout_width="match_parent"

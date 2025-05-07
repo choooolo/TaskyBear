@@ -200,7 +200,7 @@ public class ScheduleActivity extends AppCompatActivity {
         // Show file name or link
         pdfName.setText("Uploaded: " + source);
 
-        // Compute dynamic duration
+        // Compute dynamic durationaa
         int durationDays = 0;
         if (!date.equals("Unknown") && !date.isEmpty()) {
             try {

@@ -16,7 +16,7 @@ public class CalendarViewActivity extends AppCompatActivity {
 
         calendarInfo = findViewById(R.id.calendarInfo);
 
-        // Get data passed from ScheduleActivity
+        // Get data passed from ScheduleActivityaaa
         String link = getIntent().getStringExtra("link");
         String date = getIntent().getStringExtra("date");
         boolean everyday = getIntent().getBooleanExtra("everyday", false);
