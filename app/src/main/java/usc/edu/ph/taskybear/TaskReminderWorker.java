@@ -25,7 +25,8 @@ import java.util.Locale;
 public class TaskReminderWorker extends Worker {
 
     private static final String CHANNEL_ID = "task_reminder_channel";
-    private static final int NOTIFICATION_ID = 101;
+    private static final int DAILY_NOTIFICATION_ID = 101;
+    private static final int WEEKLY_NOTIFICATION_ID = 102;
 
     public TaskReminderWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -50,13 +51,34 @@ public class TaskReminderWorker extends Worker {
 
             // Check for notification permissions (Android 13+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    System.out.println("Notification permission not granted. Worker failed.");
+                try {
+                    if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        System.out.println("Notification permission not granted. Worker failed.");
+                        return Result.failure();
+                    }
+                } catch (SecurityException e) {
+                    e.printStackTrace();
                     return Result.failure();
                 }
             }
 
-            // Counters
+            // Initialize date formatter
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date today = new Date();
+            String todayString = sdf.format(today);
+
+            // Get all tasks for the user
+            List<Task> allTasks = dbHelper.getAllTasksForUser(userId);
+            if (allTasks == null) {
+                System.out.println("No tasks found for user ID: " + userId);
+                return Result.failure();
+            }
+
+            // Daily task counters
+            int todayTasks = 0;
+            int todayCompleted = 0;
+
+            // Weekly task counters
             int inProgressCount = 0;
             int inReviewCount = 0;
             int onHoldCount = 0;
@@ -67,43 +89,38 @@ public class TaskReminderWorker extends Worker {
             Calendar calendar = Calendar.getInstance();
             calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
             Date weekStart = calendar.getTime();
-
             calendar.add(Calendar.DAY_OF_WEEK, 6);
             Date weekEnd = calendar.getTime();
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-
-            // Get all tasks for the user
-            List<Task> allTasks = dbHelper.getAllTasksForUser(userId);
-            if (allTasks == null) {
-                System.out.println("No tasks found for user ID: " + userId);
-                return Result.failure();
-            }
-
+            // Count tasks
             for (Task task : allTasks) {
                 try {
                     Date taskDate = sdf.parse(task.getDate());
                     String category = task.getCategory();
 
-                    // Filter tasks within this week only
+                    // Daily task check
+                    if (taskDate != null && sdf.format(taskDate).equals(todayString)) {
+                        todayTasks++;
+                        if ("Complete".equalsIgnoreCase(category)) {
+                            todayCompleted++;
+                        }
+                    }
+
+                    // Weekly task check
                     if (taskDate == null || taskDate.before(weekStart) || taskDate.after(weekEnd)) {
                         continue;
                     }
 
-                    // Count completed tasks separately
                     if ("Complete".equalsIgnoreCase(category)) {
                         completedCount++;
                         continue;
                     }
 
-                    // Correct missed task logic
-                    Date today = new Date();
-                    if (taskDate.before(today) && sdf.format(taskDate).compareTo(sdf.format(today)) < 0 && !"Complete".equalsIgnoreCase(category)) {
+                    if (taskDate.before(today) && !"Complete".equalsIgnoreCase(category)) {
                         missedCount++;
                         continue;
                     }
 
-                    // Count tasks based on category
                     switch (category) {
                         case "Progress":
                             inProgressCount++;
@@ -121,41 +138,70 @@ public class TaskReminderWorker extends Worker {
                 }
             }
 
-            // Build the notification content
-            String notificationContent = "You have " + inProgressCount + " In Progress, " +
-                    inReviewCount + " In Review, " +
-                    onHoldCount + " On Hold, and " +
-                    missedCount + " missed tasks this week.";
+            // Generate the daily notification message
+            String todayMessage;
+            if (todayTasks == todayCompleted && todayTasks > 0) {
+                todayMessage = "🎉 Congrats! You have completed all " + todayTasks + " tasks today!";
+            } else if (todayTasks > 0) {
+                todayMessage = "📅 You have completed " + todayCompleted + " out of " + todayTasks + " tasks today.";
+            } else {
+                todayMessage = "📝 No tasks scheduled for today. Enjoy your free time!";
+            }
 
-            // Create the notification channel (required for Android 8.0 and higher)
+            // Generate the weekly notification message
+            String weeklyMessage = "📊 Weekly Task Summary:\n" +
+                    "🔄 In Progress: " + inProgressCount + "\n" +
+                    "🔎 In Review: " + inReviewCount + "\n" +
+                    "🕒 On Hold: " + onHoldCount + "\n" +
+                    "⚠️ Missed: " + missedCount + "\n" +
+                    "✅ Completed: " + completedCount;
+
+            // Create and show the daily notification
             createNotificationChannel(context);
+            showNotification(context, "Daily Tasks", todayMessage, DAILY_NOTIFICATION_ID);
 
-            // Create an intent to open the app when the notification is clicked
-            Intent intent = new Intent(context, HomeActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-            // Build the notification
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_notification)
-                    .setContentTitle("Task Reminder")
-                    .setContentText(notificationContent)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setContentIntent(pendingIntent)
-                    .setAutoCancel(true);
-
-            // Show the notification
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-            notificationManager.notify(NOTIFICATION_ID, builder.build());
-
-            // Log the successful notification
-            System.out.println("Notification sent successfully: " + notificationContent);
+            // Create and show the weekly notification
+            showNotification(context, "Weekly Tasks", weeklyMessage, WEEKLY_NOTIFICATION_ID);
 
             return Result.success();
 
         } catch (Exception e) {
-            // Log the exception for better debugging
             e.printStackTrace();
             return Result.failure();
+        }
+    }
+
+    private void showNotification(Context context, String title, String message, int notificationId) {
+        Intent intent = new Intent(context, HomeActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true);
+
+        try {
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+
+            // Check for notification permissions (Android 13+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    System.out.println("Notification permission not granted. Skipping notification.");
+                    return;
+                }
+            }
+
+            // Send the notification
+            notificationManager.notify(notificationId, builder.build());
+
+        } catch (SecurityException e) {
+            e.printStackTrace();
+            System.out.println("Failed to send notification due to missing permission.");
+            return;
         }
     }
 
