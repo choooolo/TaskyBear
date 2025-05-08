@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -62,8 +63,15 @@ public class TaskReminderWorker extends Worker {
             int completedCount = 0;
             int missedCount = 0;
 
-            // Get today's date
-            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+            // Get the start and end dates of the current week
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+            Date weekStart = calendar.getTime();
+
+            calendar.add(Calendar.DAY_OF_WEEK, 6);
+            Date weekEnd = calendar.getTime();
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
             // Get all tasks for the user
             List<Task> allTasks = dbHelper.getAllTasksForUser(userId);
@@ -73,32 +81,43 @@ public class TaskReminderWorker extends Worker {
             }
 
             for (Task task : allTasks) {
-                String taskDate = task.getDate();
-                String category = task.getCategory();
+                try {
+                    Date taskDate = sdf.parse(task.getDate());
+                    String category = task.getCategory();
 
-                // Count completed tasks separately
-                if ("Complete".equalsIgnoreCase(category)) {
-                    completedCount++;
-                    continue;
-                }
+                    // Filter tasks within this week only
+                    if (taskDate == null || taskDate.before(weekStart) || taskDate.after(weekEnd)) {
+                        continue;
+                    }
 
-                // Count missed tasks
-                if (taskDate.compareTo(today) < 0 && !"Complete".equalsIgnoreCase(category)) {
-                    missedCount++;
-                    continue;
-                }
+                    // Count completed tasks separately
+                    if ("Complete".equalsIgnoreCase(category)) {
+                        completedCount++;
+                        continue;
+                    }
 
-                // Count tasks based on category
-                switch (category) {
-                    case "Progress":
-                        inProgressCount++;
-                        break;
-                    case "Review":
-                        inReviewCount++;
-                        break;
-                    case "On Hold":
-                        onHoldCount++;
-                        break;
+                    // Correct missed task logic
+                    Date today = new Date();
+                    if (taskDate.before(today) && sdf.format(taskDate).compareTo(sdf.format(today)) < 0 && !"Complete".equalsIgnoreCase(category)) {
+                        missedCount++;
+                        continue;
+                    }
+
+                    // Count tasks based on category
+                    switch (category) {
+                        case "Progress":
+                            inProgressCount++;
+                            break;
+                        case "Review":
+                            inReviewCount++;
+                            break;
+                        case "On Hold":
+                            onHoldCount++;
+                            break;
+                    }
+
+                } catch (ParseException e) {
+                    e.printStackTrace();
                 }
             }
 
@@ -106,7 +125,7 @@ public class TaskReminderWorker extends Worker {
             String notificationContent = "You have " + inProgressCount + " In Progress, " +
                     inReviewCount + " In Review, " +
                     onHoldCount + " On Hold, and " +
-                    missedCount + " missed tasks.";
+                    missedCount + " missed tasks this week.";
 
             // Create the notification channel (required for Android 8.0 and higher)
             createNotificationChannel(context);
@@ -132,7 +151,6 @@ public class TaskReminderWorker extends Worker {
             System.out.println("Notification sent successfully: " + notificationContent);
 
             return Result.success();
-
 
         } catch (Exception e) {
             // Log the exception for better debugging
