@@ -8,68 +8,16 @@
     android:background="#FFFFFF"
     tools:context=".ScheduleActivity">
 
-    <!-- Static Header aaa
-    <RelativeLayout
-        android:id="@+id/header"
-        android:layout_width="match_parent"
-        android:layout_height="202dp"
-        android:layout_alignParentTop="true">
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="fitXY"
-            android:src="@drawable/headr" />
-
-        <ImageView
-            android:id="@+id/profilePic"
-            android:layout_width="74dp"
-            android:layout_height="74dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="40dp"
-            android:background="@drawable/circle"
-            android:scaleType="centerCrop"
-            android:src="@drawable/profile_placeholder"
-            android:layout_alignParentStart="true"
-            android:outlineProvider="background"
-            android:clipToOutline="true" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="45dp"
-            android:layout_toEndOf="@id/profilePic"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Welcome Back!"
-                android:textColor="#7B5F5F"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/username"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Jane Doe"
-                android:textColor="#EBDCDC"
-                android:textSize="14sp" />
-        </LinearLayout>
-    </RelativeLayout>
-
-    <!-- Scrollable Content (starts below header, ends above bottom nav) -->
     <ScrollView
         android:id="@+id/scrollArea"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/header"
         android:layout_above="@id/bottomNavigation"
-        android:fillViewport="true"
         android:paddingTop="12dp"
-        android:paddingBottom="120dp">
+        android:paddingBottom="120dp"
+        android:fillViewport="true"
+        android:contentDescription="scroll" >
+
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -77,7 +25,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Upload Card Container -->
+
             <LinearLayout
                 android:id="@+id/uploadCardContainer"
                 android:layout_width="match_parent"
@@ -133,7 +81,8 @@
                             <Switch
                                 android:id="@+id/everydaySwitch"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_height="wrap_content"
+                                android:contentDescription="Toggle Everyday Schedule" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -146,24 +95,25 @@
                             <Switch
                                 android:id="@+id/durationSwitch"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_height="wrap_content"
+                                android:contentDescription="Toggle Duration Setting" />
 
                             <ImageView
-                                android:id="@+id/calendarBtn"
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:layout_marginStart="8dp"
-                                android:src="@drawable/calendar_icon"
-                                android:contentDescription="Open calendar"
-                                android:clickable="true"
-                                android:focusable="true" />
+                            android:id="@+id/calendarBtn"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="8dp"
+                            android:src="@drawable/calendar_icon"
+                            android:contentDescription="Open calendar to set duration"
+                            android:clickable="true"
+                            android:focusable="true" />
                         </LinearLayout>
 
                         <TextView
                             android:id="@+id/selectedDateText"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text=""
+                            android:text="Selected date will appear here"
                             android:textColor="@android:color/black"
                             android:layout_marginBottom="8dp" />
 
@@ -180,7 +130,7 @@
                                 android:layout_height="32dp"
                                 android:layout_marginEnd="16dp"
                                 android:src="@drawable/trash_icon"
-                                android:contentDescription="Delete Icon" />
+                                android:contentDescription="Delete this schedule" />
 
                             <Button
                                 android:id="@+id/uploadBtn"
@@ -222,7 +172,7 @@
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:src="@drawable/add_icon"
-            android:contentDescription="Add Schedule"
+            android:contentDescription="Add new schedule"
             android:padding="12dp"
             android:elevation="4dp" />
     </androidx.cardview.widget.CardView>
@@ -238,7 +188,8 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitXY"
-            android:src="@drawable/footer" />
+            android:src="@drawable/footer"
+            android:contentDescription="Bottom navigation background" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -259,7 +210,8 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/home_icon"
-                    app:tint="#8B4513" />
+                    app:tint="#8B4513"
+                    android:contentDescription="Go to Home" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -283,7 +235,8 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/todo_icon"
-                    app:tint="#8B4513" />
+                    app:tint="#8B4513"
+                    android:contentDescription="Go to To-Do List" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -307,7 +260,8 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/shelf_icon"
-                    app:tint="#8B4513" />
+                    app:tint="#8B4513"
+                    android:contentDescription="Go to Shelf" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -331,7 +285,8 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/sched_icon"
-                    app:tint="#8B4513" />
+                    app:tint="#8B4513"
+                    android:contentDescription="Go to Schedule" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -355,7 +310,8 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/profile_icon"
-                    app:tint="#8B4513" />
+                    app:tint="#8B4513"
+                    android:contentDescription="Go to Profile" />
 
                 <TextView
                     android:layout_width="wrap_content"
