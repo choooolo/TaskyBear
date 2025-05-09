@@ -89,10 +89,26 @@ public class ToDoActivity extends AppCompatActivity {
         updateButtonStates(currentCategory);
         openDialogButton.setOnClickListener(v -> showAddTaskDialog());
 
-        homebtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, HomeActivity.class)));
-        shelfbtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, ShelfActivity.class)));
-        profilebtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, ProfileActivity.class)));
-        schedbtn.setOnClickListener(v -> startActivity(new Intent(ToDoActivity.this, ScheduleActivity.class)));
+        homebtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ToDoActivity.this, HomeActivity.class);
+            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
+            startActivity(intent);
+        });
+        shelfbtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ToDoActivity.this, ShelfActivity.class);
+            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
+            startActivity(intent);
+        });
+        profilebtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ToDoActivity.this, ProfileActivity.class);
+            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
+            startActivity(intent);
+        });
+        schedbtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ToDoActivity.this, ScheduleActivity.class);
+            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
+            startActivity(intent);
+        });
 
         completeBtn.setOnClickListener(v -> setCategoryFilter("Complete"));
         reviewBtn.setOnClickListener(v -> setCategoryFilter("Review"));
