@@ -5,8 +5,10 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,12 +16,15 @@ import android.widget.*;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
+
+import java.io.File;
 
 public class ShelfActivity extends AppCompatActivity {
     private LinearLayout booksContainer;
@@ -30,105 +35,139 @@ public class ShelfActivity extends AppCompatActivity {
     private Uri selectedPdfUri;
     private Uri selectedImageUri;
     private ImageView bookCoverPreview;
-    private ImageView todobtn,homebtn, profilebtn,schedbtn;
+    private ImageView todobtn, homebtn, profilebtn, schedbtn, profilePic;
+    private TextView welcomeText, usernameText;
+    private DatabaseHelper dbHelper;
+    private String currentUsername;
 
-
-        @Override
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_shelf);
-            todobtn = findViewById(R.id.todobtn);
-            homebtn = findViewById(R.id.homebtn);
-            profilebtn = findViewById(R.id.profilebtn);
-            schedbtn = findViewById(R.id.schedbtn);
 
-            booksContainer = findViewById(R.id.booksContainer);
+        // Initialize views
+        todobtn = findViewById(R.id.todobtn);
+        homebtn = findViewById(R.id.homebtn);
+        profilebtn = findViewById(R.id.profilebtn);
+        schedbtn = findViewById(R.id.schedbtn);
+        profilePic = findViewById(R.id.profilePic);
+        welcomeText = findViewById(R.id.welcomeText);
+        usernameText = findViewById(R.id.username);
+        booksContainer = findViewById(R.id.booksContainer);
+        dbHelper = new DatabaseHelper(this);
+
+        // Get username from intent
+        currentUsername = getIntent().getStringExtra("USERNAME");
+        if (currentUsername != null) {
+            loadUserProfileData();
+        }
+
+        // Set up navigation buttons
+        setupNavigationButtons();
+
+        // Set up upload functionality
+        setupUploadFunctionality();
+    }
+
+    private void setupNavigationButtons() {
+        todobtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ShelfActivity.this, ToDoActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
+
+        schedbtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ShelfActivity.this, ScheduleActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
+
+        homebtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ShelfActivity.this, HomeActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
+
+        profilebtn.setOnClickListener(v -> {
+            Intent intent = new Intent(ShelfActivity.this, ProfileActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
+    }
+
+    private void setupUploadFunctionality() {
         CardView uploadCard = (CardView) booksContainer.getChildAt(0);
         LinearLayout uploadFromDeviceLayout = uploadCard.findViewById(R.id.uploadFromDeviceLayout);
 
         uploadFromDeviceLayout.setOnClickListener(v -> {
-            checkStoragePermission();
-            showUploadDialog();
+            if (checkStoragePermission()) {
+                showUploadDialog();
+            }
         });
-            todobtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(ShelfActivity.this, ToDoActivity.class);
-                    startActivity(intent);
-                }
-            });
-            schedbtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(ShelfActivity.this, ScheduleActivity.class);
-                    startActivity(intent);
-                }
-            });
-            homebtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(ShelfActivity.this, HomeActivity.class);
-                    startActivity(intent);
-                }
-            });
-            profilebtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(ShelfActivity.this, ProfileActivity.class);
-                    startActivity(intent);
-                }
-            });
+    }
 
+    private boolean checkStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // For Android 10 and above, we don't need storage permissions for accessing media
+            return true;
+        } else {
+            // For Android 9 and below, we need both READ and WRITE permissions
+            boolean readPermission = ContextCompat.checkSelfPermission(this, 
+                Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            boolean writePermission = ContextCompat.checkSelfPermission(this, 
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
 
-
-        }
-
-    private void checkStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+            if (!readPermission || !writePermission) {
+                ActivityCompat.requestPermissions(this,
+                    new String[]{
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    },
                     STORAGE_PERMISSION_CODE);
+                return false;
+            }
+            return true;
         }
-        homebtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ShelfActivity.this, HomeActivity.class);
-                startActivity(intent);
-            }
-        });
-        todobtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(ShelfActivity.this, ToDoActivity.class);
-                startActivity(intent);
-            }
-        });
-//        schedbtn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent intent = new Intent(ShelfActivity.this, ScheduleActivity.class);
-//                startActivity(intent);
-//            }
-//        });
-//        profilebtn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent intent = new Intent(ToDoActivity.this, ProfileActivity.class);
-//                startActivity(intent);
-//            }
-//        });
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
+                                         @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == STORAGE_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Permission needed to access files", Toast.LENGTH_SHORT).show();
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            
+            if (allGranted) {
+                showUploadDialog();
+            } else {
+                Toast.makeText(this, "Storage permission is required to access files", Toast.LENGTH_SHORT).show();
+                // Show settings dialog if permission is permanently denied
+                if (!ActivityCompat.shouldShowRequestPermissionRationale(this, 
+                    Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                    showSettingsDialog();
+                }
             }
         }
+    }
+
+    private void showSettingsDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("Permission Required")
+            .setMessage("Storage permission is required to access files. Please grant permission in Settings.")
+            .setPositiveButton("Settings", (dialog, which) -> {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                Uri uri = Uri.fromParts("package", getPackageName(), null);
+                intent.setData(uri);
+                startActivity(intent);
+            })
+            .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+            .show();
     }
 
     private void showUploadDialog() {
@@ -180,7 +219,6 @@ public class ShelfActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (resultCode == RESULT_OK && data != null && data.getData() != null) {
             Uri uri = data.getData();
             if (requestCode == PDF_PICKER_REQUEST) {
@@ -189,7 +227,11 @@ public class ShelfActivity extends AppCompatActivity {
             } else if (requestCode == IMAGE_PICKER_REQUEST) {
                 selectedImageUri = uri;
                 if (bookCoverPreview != null) {
-                    Glide.with(this).load(uri).into(bookCoverPreview);
+                    Glide.with(this)
+                        .load(uri)
+                        .placeholder(R.drawable.upload_icon)
+                        .error(R.drawable.upload_icon)
+                        .into(bookCoverPreview);
                 }
             }
         }
@@ -207,7 +249,11 @@ public class ShelfActivity extends AppCompatActivity {
         bookTitle.setText(title);
 
         if (imageUri != null) {
-            Glide.with(this).load(imageUri).into(bookCover);
+            Glide.with(this)
+                .load(imageUri)
+                .placeholder(R.drawable.upload_icon)
+                .error(R.drawable.upload_icon)
+                .into(bookCover);
         } else {
             bookCover.setImageResource(R.drawable.upload_icon);
         }
@@ -237,5 +283,45 @@ public class ShelfActivity extends AppCompatActivity {
         });
 
         booksContainer.addView(bookCardView, booksContainer.getChildCount() - 1);
+    }
+
+    private void loadUserProfileData() {
+        int userId = dbHelper.getUserId(currentUsername);
+        if (userId != -1) {
+            UserProfile userProfile = dbHelper.getUserProfile(userId);
+            if (userProfile != null) {
+                // Update welcome text and username
+                welcomeText.setText("Welcome Back!");
+                usernameText.setText(userProfile.getUsername());
+                
+                // Update profile picture
+                if (userProfile.getProfileImageUri() != null && !userProfile.getProfileImageUri().isEmpty()) {
+                    try {
+                        Uri imageUri = Uri.parse(userProfile.getProfileImageUri());
+                        if (imageUri.getScheme().equals("file")) {
+                            File imageFile = new File(imageUri.getPath());
+                            if (!imageFile.exists()) {
+                                return;
+                            }
+                        }
+                        Glide.with(this)
+                            .load(imageUri)
+                            .placeholder(R.drawable.profile_placeholder)
+                            .error(R.drawable.profile_placeholder)
+                            .into(profilePic);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (currentUsername != null) {
+            loadUserProfileData();
+        }
     }
 }
