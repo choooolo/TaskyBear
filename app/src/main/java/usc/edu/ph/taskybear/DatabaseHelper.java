@@ -8,7 +8,9 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 import usc.edu.ph.taskybear.Task;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 
@@ -433,5 +435,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return userId;
+    }
+
+    public int getOverdueTaskCount(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().getTime());
+        String query = "SELECT COUNT(*) FROM tasks WHERE user_id = ? AND date < ? AND category != 'Complete'";
+        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(userId), currentDate});
+        int count = 0;
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0);
+        }
+        cursor.close();
+        db.close();
+        return count;
     }
 }

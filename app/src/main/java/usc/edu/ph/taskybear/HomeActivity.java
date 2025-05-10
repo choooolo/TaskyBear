@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.widget.CalendarView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -59,14 +60,11 @@ public class HomeActivity extends AppCompatActivity {
         profilebtn.setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
 
         // Calendar date change listener
-        calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
-            @Override
-            public void onSelectedDayChange(CalendarView view, int year, int month, int dayOfMonth) {
-                Calendar selectedDate = Calendar.getInstance();
-                selectedDate.set(year, month, dayOfMonth);
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                loadTasksForDate(sdf.format(selectedDate.getTime()));
-            }
+        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
+            Calendar selectedDate = Calendar.getInstance();
+            selectedDate.set(year, month, dayOfMonth);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            loadTasksForDate(sdf.format(selectedDate.getTime()));
         });
 
         // Load initial tasks for current calendar date
@@ -76,6 +74,9 @@ public class HomeActivity extends AppCompatActivity {
 
         // Show task summary counts
         showTaskSummaryCounts();
+
+        // Show productivity bar
+        showProductivityBar();
 
         // Request POST_NOTIFICATIONS permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -98,7 +99,7 @@ public class HomeActivity extends AppCompatActivity {
         DatabaseHelper databaseHelper = new DatabaseHelper(this);
         List<Task> tasks = databaseHelper.getTasksForDateAndCategory(userId, selectedDate, "Progress");
 
-        // Update UI /a/sdsadad
+        // Update UI
         taskList.removeAllViews();
 
         if (tasks.isEmpty()) {
@@ -138,10 +139,10 @@ public class HomeActivity extends AppCompatActivity {
         completeCountText.setText(completeCount + " Tasks");
 
         // Set click listeners for category filters
-        findViewById(R.id.progressCount).setOnClickListener(v -> openToDoWithCategory("Progress"));
-        findViewById(R.id.reviewCount).setOnClickListener(v -> openToDoWithCategory("Review"));
-        findViewById(R.id.onholdCount).setOnClickListener(v -> openToDoWithCategory("On Hold"));
-        findViewById(R.id.completedCount).setOnClickListener(v -> openToDoWithCategory("Complete"));
+        progressCountText.setOnClickListener(v -> openToDoWithCategory("Progress"));
+        reviewCountText.setOnClickListener(v -> openToDoWithCategory("Review"));
+        holdCountText.setOnClickListener(v -> openToDoWithCategory("On Hold"));
+        completeCountText.setOnClickListener(v -> openToDoWithCategory("Complete"));
     }
 
     private void openToDoWithCategory(String category) {
@@ -157,9 +158,46 @@ public class HomeActivity extends AppCompatActivity {
         WorkRequest taskReminderWorkRequest = new PeriodicWorkRequest.Builder(
                 TaskReminderWorker.class,
                 15,
-                TimeUnit.SECONDS
+                TimeUnit.MINUTES
         ).addTag("TaskReminder").build();
 
         WorkManager.getInstance(this).enqueue(taskReminderWorkRequest);
+    }
+
+    private void showProductivityBar() {
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        DatabaseHelper db = new DatabaseHelper(this);
+
+        // Get the total, completed, and overdue task counts
+        int totalTasks = db.getTaskCountByCategory(userId, "Progress") +
+                db.getTaskCountByCategory(userId, "Review") +
+                db.getTaskCountByCategory(userId, "On Hold") +
+                db.getTaskCountByCategory(userId, "Complete");
+
+        int completedTasks = db.getTaskCountByCategory(userId, "Complete");
+        int overdueTasks = db.getOverdueTaskCount(userId);
+        int pendingTasks = totalTasks - completedTasks - overdueTasks;
+
+        // Calculate productivity percentage (excluding overdue tasks from the denominator)
+        int effectiveTotalTasks = totalTasks - overdueTasks;
+        int productivityPercentage = (effectiveTotalTasks == 0) ? 0 : (completedTasks * 100) / effectiveTotalTasks;
+
+        // Set progress bar, task count, and message
+        ProgressBar productivityBar = findViewById(R.id.productivityBar);
+        TextView taskCountText = findViewById(R.id.taskCountText);
+        TextView productivityMessage = findViewById(R.id.productivityMessage);
+
+        productivityBar.setProgress(productivityPercentage);
+        taskCountText.setText(completedTasks + "/" + totalTasks + " Tasks (" + overdueTasks + " Overdue)");
+
+        if (productivityPercentage >= 80) {
+            productivityMessage.setText("Excellent! You're on track! Keep it up! 💪");
+        } else if (productivityPercentage >= 50) {
+            productivityMessage.setText("Good job! You're making progress. Don't stop now! 😊");
+        } else if (productivityPercentage > 0) {
+            productivityMessage.setText("Keep going! Every small step counts. 🚶‍♂️");
+        } else {
+            productivityMessage.setText("Let's get started! You can do this! 🌱");
+        }
     }
 }
