@@ -49,79 +49,86 @@ public class TaskReminderWorker extends Worker {
                 return Result.failure();
             }
 
-            // Check for notification permissions (Android 13+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                try {
-                    if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                        System.out.println("Notification permission not granted. Worker failed.");
-                        return Result.failure();
-                    }
-                } catch (SecurityException e) {
-                    e.printStackTrace();
+                if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    System.out.println("Notification permission not granted. Worker failed.");
                     return Result.failure();
                 }
             }
 
-            // Initialize date formatter
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             Date today = new Date();
+
+            Calendar todayCal = Calendar.getInstance();
+            todayCal.setTime(today);
+            todayCal.set(Calendar.HOUR_OF_DAY, 0);
+            todayCal.set(Calendar.MINUTE, 0);
+            todayCal.set(Calendar.SECOND, 0);
+            todayCal.set(Calendar.MILLISECOND, 0);
+            today = todayCal.getTime();
             String todayString = sdf.format(today);
 
-            // Get all tasks for the user
+            Calendar weekStartCal = Calendar.getInstance();
+            weekStartCal.setTime(today);
+            weekStartCal.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
+            weekStartCal.set(Calendar.HOUR_OF_DAY, 0);
+            weekStartCal.set(Calendar.MINUTE, 0);
+            weekStartCal.set(Calendar.SECOND, 0);
+            weekStartCal.set(Calendar.MILLISECOND, 0);
+            Date weekStart = weekStartCal.getTime();
+
+            Calendar weekEndCal = (Calendar) weekStartCal.clone();
+            weekEndCal.add(Calendar.DAY_OF_MONTH, 6);
+            weekEndCal.set(Calendar.HOUR_OF_DAY, 23);
+            weekEndCal.set(Calendar.MINUTE, 59);
+            weekEndCal.set(Calendar.SECOND, 59);
+            weekEndCal.set(Calendar.MILLISECOND, 999);
+
+            // 🔧 FIX: Extend week end by 1 day if today is Saturday
+            if (todayCal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY) {
+                weekEndCal.add(Calendar.DAY_OF_MONTH, 1);
+            }
+
+            Date weekEnd = weekEndCal.getTime();
+
             List<Task> allTasks = dbHelper.getAllTasksForUser(userId);
             if (allTasks == null) {
                 System.out.println("No tasks found for user ID: " + userId);
                 return Result.failure();
             }
 
-            // Daily task counters
             int todayTasks = 0;
             int todayCompleted = 0;
 
-            // Weekly task counters
             int inProgressCount = 0;
             int inReviewCount = 0;
             int onHoldCount = 0;
             int completedCount = 0;
             int missedCount = 0;
 
-            // Get the start and end dates of the current week
-            Calendar calendar = Calendar.getInstance();
-            calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
-            Date weekStart = calendar.getTime();
-            calendar.add(Calendar.DAY_OF_WEEK, 6);
-            Date weekEnd = calendar.getTime();
-
-            // Count tasks
             for (Task task : allTasks) {
                 try {
                     Date taskDate = sdf.parse(task.getDate());
                     String category = task.getCategory();
 
-                    // Daily task check
-                    if (taskDate != null && sdf.format(taskDate).equals(todayString)) {
+                    if (taskDate == null) continue;
+
+                    if (sdf.format(taskDate).equals(todayString)) {
                         todayTasks++;
                         if ("Complete".equalsIgnoreCase(category)) {
                             todayCompleted++;
                         }
                     }
 
-                    // Weekly task check
-                    if (taskDate == null || taskDate.before(weekStart) || taskDate.after(weekEnd)) {
+                    if (taskDate.before(weekStart) || taskDate.after(weekEnd)) {
                         continue;
                     }
 
-                    if ("Complete".equalsIgnoreCase(category)) {
-                        completedCount++;
-                        continue;
-                    }
-
-                    if (taskDate.before(today) && !"Complete".equalsIgnoreCase(category)) {
-                        missedCount++;
-                        continue;
-                    }
-
+                    // Always count by category
                     switch (category) {
+                        case "Complete":
+                            completedCount++;
+                            break;
                         case "Progress":
                             inProgressCount++;
                             break;
@@ -133,12 +140,16 @@ public class TaskReminderWorker extends Worker {
                             break;
                     }
 
+                    // Separately check if overdue and incomplete
+                    if (!"Complete".equalsIgnoreCase(category) && taskDate.before(today)) {
+                        missedCount++;
+                    }
+
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
             }
 
-            // Generate the daily notification message
             String todayMessage;
             if (todayTasks == todayCompleted && todayTasks > 0) {
                 todayMessage = "🎉 Congrats! You have completed all " + todayTasks + " tasks today!";
@@ -148,7 +159,6 @@ public class TaskReminderWorker extends Worker {
                 todayMessage = "📝 No tasks scheduled for today. Enjoy your free time!";
             }
 
-            // Generate the weekly notification message
             String weeklyMessage = "📊 Weekly Task Summary:\n" +
                     "🔄 In Progress: " + inProgressCount + "\n" +
                     "🔎 In Review: " + inReviewCount + "\n" +
@@ -156,11 +166,8 @@ public class TaskReminderWorker extends Worker {
                     "⚠️ Missed: " + missedCount + "\n" +
                     "✅ Completed: " + completedCount;
 
-            // Create and show the daily notification
             createNotificationChannel(context);
             showNotification(context, "Daily Tasks", todayMessage, DAILY_NOTIFICATION_ID);
-
-            // Create and show the weekly notification
             showNotification(context, "Weekly Tasks", weeklyMessage, WEEKLY_NOTIFICATION_ID);
 
             return Result.success();
@@ -186,22 +193,16 @@ public class TaskReminderWorker extends Worker {
 
         try {
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-
-            // Check for notification permissions (Android 13+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     System.out.println("Notification permission not granted. Skipping notification.");
                     return;
                 }
             }
-
-            // Send the notification
             notificationManager.notify(notificationId, builder.build());
-
         } catch (SecurityException e) {
             e.printStackTrace();
             System.out.println("Failed to send notification due to missing permission.");
-            return;
         }
     }
 
