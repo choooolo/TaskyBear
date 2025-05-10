@@ -25,14 +25,18 @@ import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
 import java.util.concurrent.TimeUnit;
+import android.net.Uri;
+import java.io.File;
+import com.bumptech.glide.Glide;
 
 public class HomeActivity extends AppCompatActivity {
 
     private TextView userNameTextView;
     private LinearLayout taskList;
-    private ImageView todobtn, shelfbtn, profilebtn, schedbtn;
+    private ImageView todobtn, shelfbtn, profilebtn, schedbtn, profilePic;
     private CalendarView calendarView;
     private DatabaseHelper dbHelper;
+    private String currentUsername;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,17 +51,40 @@ public class HomeActivity extends AppCompatActivity {
         profilebtn = findViewById(R.id.profilebtn);
         taskList = findViewById(R.id.taskList);
         userNameTextView = findViewById(R.id.userNameTextView);
+        profilePic = findViewById(R.id.profilePic);
+        dbHelper = new DatabaseHelper(this);
 
         // Get username from SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("UserDetails", MODE_PRIVATE);
-        String userName = sharedPreferences.getString("username", "Jane Doe");
-        userNameTextView.setText(userName);
+        SharedPreferences sharedPreferences = getSharedPreferences("TaskyPrefs", MODE_PRIVATE);
+        currentUsername = sharedPreferences.getString("username", "");
+
+        // Load user profile data
+        loadUserProfileData();
 
         // Set up button click listeners
-        todobtn.setOnClickListener(v -> startActivity(new Intent(this, ToDoActivity.class)));
-        schedbtn.setOnClickListener(v -> startActivity(new Intent(this, ScheduleActivity.class)));
-        shelfbtn.setOnClickListener(v -> startActivity(new Intent(this, ShelfActivity.class)));
-        profilebtn.setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
+        todobtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ToDoActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
+
+        schedbtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ScheduleActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
+
+        shelfbtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ShelfActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
+
+        profilebtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ProfileActivity.class);
+            intent.putExtra("USERNAME", currentUsername);
+            startActivity(intent);
+        });
 
         // Calendar date change listener
         calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
@@ -89,6 +116,49 @@ public class HomeActivity extends AppCompatActivity {
 
         // Schedule task reminders when the user logs in
         scheduleTaskReminderWorker();
+    }
+
+    private void loadUserProfileData() {
+        int userId = dbHelper.getUserId(currentUsername);
+        if (userId != -1) {
+            UserProfile userProfile = dbHelper.getUserProfile(userId);
+            if (userProfile != null) {
+                // Update username
+                userNameTextView.setText(userProfile.getUsername());
+
+                // Update profile picture
+                if (userProfile.getProfileImageUri() != null && !userProfile.getProfileImageUri().isEmpty()) {
+                    try {
+                        Uri imageUri = Uri.parse(userProfile.getProfileImageUri());
+                        if (imageUri.getScheme().equals("file")) {
+                            File imageFile = new File(imageUri.getPath());
+                            if (!imageFile.exists()) {
+                                return;
+                            }
+                        }
+                        Glide.with(this)
+                                .load(imageUri)
+                                .placeholder(R.drawable.profile_placeholder)
+                                .error(R.drawable.profile_placeholder)
+                                .into(profilePic);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadUserProfileData();
+        // Load initial tasks for current calendar date
+        Calendar initialCalendar = Calendar.getInstance();
+        initialCalendar.setTimeInMillis(calendarView.getDate());
+        loadTasksForDate(new SimpleDateFormat("yyyy-MM-dd").format(initialCalendar.getTime()));
+        // Show task summary counts
+        showTaskSummaryCounts();
     }
 
     private void loadTasksForDate(String selectedDate) {

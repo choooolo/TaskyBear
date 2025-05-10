@@ -25,6 +25,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_ID = "id";
     private static final String COLUMN_USERNAME = "username";
     private static final String COLUMN_PASSWORD = "password";
+    private static final String COLUMN_EMAIL = "email";
+    private static final String COLUMN_PHONE = "phone";
+    private static final String COLUMN_PROFILE_IMAGE = "profile_image";
 
     // Task table
     private static final String TABLE_TASKS = "tasks";
@@ -47,7 +50,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String CREATE_USERS_TABLE = "CREATE TABLE " + TABLE_USERS + "("
                 + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_USERNAME + " TEXT, "
-                + COLUMN_PASSWORD + " TEXT)";
+                + COLUMN_PASSWORD + " TEXT,"
+                + COLUMN_EMAIL + " TEXT, "
+                + COLUMN_PHONE + " TEXT, "
+                + COLUMN_PROFILE_IMAGE + " TEXT)";
         db.execSQL(CREATE_USERS_TABLE);
 
         Log.d("DatabaseHelper", "Creating tasks table");
@@ -80,6 +86,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_USERNAME, username);
         values.put(COLUMN_PASSWORD, password);
+        values.put(COLUMN_EMAIL, "");  // Default empty email
+        values.put(COLUMN_PHONE, "");  // Default empty phone
+        values.put(COLUMN_PROFILE_IMAGE, "");  // Default empty profile image
         long result = db.insert(TABLE_USERS, null, values);
         db.close();
         return result != -1;
@@ -115,14 +124,80 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
-    // Update password for a username
-    public boolean updatePassword(String username, String newPassword) {
+    // Add new profile-related methods
+    public boolean updateUserProfile(int userId, String username, String email, String phone, String profileImageUri) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(COLUMN_PASSWORD, newPassword);
-        int rowsAffected = db.update(TABLE_USERS, values, COLUMN_USERNAME + "=?", new String[]{username});
+        values.put(COLUMN_USERNAME, username);
+        values.put(COLUMN_EMAIL, email);
+        values.put(COLUMN_PHONE, phone);
+        if (profileImageUri != null) {
+            values.put(COLUMN_PROFILE_IMAGE, profileImageUri);
+        }
+
+        int rowsAffected = db.update(TABLE_USERS, values, COLUMN_ID + "=?", new String[]{String.valueOf(userId)});
         db.close();
         return rowsAffected > 0;
+    }
+
+    public boolean updateProfileImage(int userId, String imageUriString) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_PROFILE_IMAGE, imageUriString);
+
+        int rowsAffected = db.update(TABLE_USERS, values, COLUMN_ID + "=?", new String[]{String.valueOf(userId)});
+        db.close();
+        return rowsAffected > 0;
+    }
+
+    public UserProfile getUserProfile(int userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        UserProfile userProfile = null;
+
+        Cursor cursor = db.query(TABLE_USERS,
+                new String[]{COLUMN_ID, COLUMN_USERNAME, COLUMN_EMAIL, COLUMN_PHONE, COLUMN_PASSWORD, COLUMN_PROFILE_IMAGE},
+                COLUMN_ID + "=?",
+                new String[]{String.valueOf(userId)},
+                null, null, null);
+
+        if (cursor != null && cursor.moveToFirst()) {
+            userProfile = new UserProfile();
+            userProfile.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)));
+            userProfile.setUsername(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USERNAME)));
+            userProfile.setEmail(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_EMAIL)));
+            userProfile.setPhone(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PHONE)));
+            userProfile.setPassword(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PASSWORD)));
+            userProfile.setProfileImageUri(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PROFILE_IMAGE)));
+            cursor.close();
+        }
+        db.close();
+        return userProfile;
+    }
+
+    // Update password for a username
+    public boolean updatePassword(int userId, String currentPassword, String newPassword) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // First verify the current password
+        Cursor cursor = db.query(TABLE_USERS,
+                new String[]{COLUMN_PASSWORD},
+                COLUMN_ID + "=?",
+                new String[]{String.valueOf(userId)},
+                null, null, null);
+
+        boolean result = false;
+        if (cursor != null && cursor.moveToFirst()) {
+            String storedPassword = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PASSWORD));
+            if (storedPassword.equals(currentPassword)) {
+                ContentValues values = new ContentValues();
+                values.put(COLUMN_PASSWORD, newPassword);
+                int rowsAffected = db.update(TABLE_USERS, values, COLUMN_ID + "=?", new String[]{String.valueOf(userId)});
+                result = rowsAffected > 0;
+            }
+            cursor.close();
+        }
+        db.close();
+        return result;
     }
 
     // Insert a task for a user
