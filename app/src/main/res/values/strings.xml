@@ -2,6 +2,30 @@
     <string name="app_name">TaskyBear</string>
     <string name="forgot_password"><u>Forgot Password?</u></string>
     <string name="register_here"><u>Register Here</u></string>
-    <string name="have_account"><u>I already have an accounte</u></string>
+    <string name="have_account"><u>I already have an account</u></string>
     <string name="username">Username</string>
+
+    <string-array name="task_types">
+        <item>None</item>
+        <item>Mobile Dev</item>
+        <item>English Class</item>
+        <item>History</item>
+        <item>Math</item>
+        <item>Science</item>
+        <item>Personal</item>
+    </string-array>
+
+    <string-array name="task_categories">
+        <item>Work</item>
+        <item>Personal</item>
+        <item>Study</item>
+        <item>Shopping</item>
+        <item>Fitness</item>
+    </string-array>
+
+    <string-array name="filter_type_mobile">
+        <item>Low</item>
+        <item>Medium</item>
+        <item>High</item>
+    </string-array>
 </resources>

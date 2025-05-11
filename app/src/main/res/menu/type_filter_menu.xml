@@ -1,0 +1,23 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/filter_type_none"
+        android:title="None" />
+    <item
+        android:id="@+id/filter_type_mobile"
+        android:title="Mobile Dev" />
+    <item
+        android:id="@+id/filter_type_english"
+        android:title="English Class" />
+    <item
+        android:id="@+id/filter_type_history"
+        android:title="History" />
+    <item
+        android:id="@+id/filter_type_math"
+        android:title="Math" />
+    <item
+        android:id="@+id/filter_type_science"
+        android:title="Science" />
+    <item
+        android:id="@+id/filter_type_personal"
+        android:title="Personal" />
+</menu>

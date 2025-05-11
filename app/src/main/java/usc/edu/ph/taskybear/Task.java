@@ -1,20 +1,23 @@
 package usc.edu.ph.taskybear;
 
-public class Task {
+import java.io.Serializable;
+
+public class Task implements Serializable {
     private int id;
     private String title;
     private String details;
     private String date;
     private String resource;
     private String category;
+    private String type;
 
-    // Constructor
-    public Task(String title, String details, String date, String resource, String category) {
+    public Task(String title, String details, String date, String resource, String category, String type) {
         this.title = title;
         this.details = details;
         this.date = date;
         this.resource = resource;
         this.category = category;
+        this.type = type;
     }
 
     // Getters and Setters
@@ -64,5 +67,13 @@ public class Task {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

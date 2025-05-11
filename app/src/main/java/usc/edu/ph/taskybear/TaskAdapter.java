@@ -1,16 +1,17 @@
 package usc.edu.ph.taskybear;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
-import android.widget.Toast;
-
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,9 +19,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
+    private static final int EDIT_TASK_REQUEST = 1001;  // Added locally
 
     private Context context;
     private List<Task> taskList;
+    private TaskActionListener listener;
 
     public interface TaskActionListener {
         void onEdit(Task task);
@@ -28,26 +31,10 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         void onCategoryChange(Task task, String newCategory);
     }
 
-    private TaskActionListener listener;
-
     public TaskAdapter(Context context, List<Task> taskList, TaskActionListener listener) {
         this.context = context;
         this.taskList = taskList;
         this.listener = listener;
-    }
-
-    public static class TaskViewHolder extends RecyclerView.ViewHolder {
-        TextView taskTitle, taskDetails, taskDate, taskResource;
-        ImageView taskMenu;
-
-        public TaskViewHolder(@NonNull View itemView) {
-            super(itemView);
-            taskTitle = itemView.findViewById(R.id.taskTitle);
-            taskDetails = itemView.findViewById(R.id.taskDetails);
-            taskDate = itemView.findViewById(R.id.taskDate);
-            taskResource = itemView.findViewById(R.id.taskResource);
-            taskMenu = itemView.findViewById(R.id.taskMenu);
-        }
     }
 
     @NonNull
@@ -65,44 +52,75 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         holder.taskDetails.setText(task.getDetails());
         holder.taskDate.setText(task.getDate());
         holder.taskResource.setText(task.getResource());
+        holder.taskType.setText(task.getType());
 
-        holder.taskMenu.setOnClickListener(v -> {
-            PopupMenu popupMenu = new PopupMenu(context, holder.taskMenu);
-            MenuInflater inflater = popupMenu.getMenuInflater();
-            inflater.inflate(R.menu.task_menu, popupMenu.getMenu());
-
-            popupMenu.setOnMenuItemClickListener(item -> {
-                if (item.getItemId() == R.id.menu_edit) {
-                    listener.onEdit(task);
-                    return true;
-                } else if (item.getItemId() == R.id.menu_delete) {
-                    listener.onDelete(task);
-                    return true;
-                } else if (item.getItemId() == R.id.mark_complete) {
-                    listener.onCategoryChange(task, "Complete");
-                    return true;
-                } else if (item.getItemId() == R.id.mark_review) {
-                    listener.onCategoryChange(task, "Review");
-                    return true;
-                } else if (item.getItemId() == R.id.mark_progress) {
-                    listener.onCategoryChange(task, "Progress");
-                    return true;
-                } else if (item.getItemId() == R.id.mark_on_hold) {
-                    listener.onCategoryChange(task, "On Hold");
-                    return true;
-                } else {
-                    return false;
-                }
-            });
-
-
-
-            popupMenu.show();
+        holder.buttonViewTask.setOnClickListener(v -> {
+            Intent intent = new Intent(context, TaskDetails.class);
+            intent.putExtra("task", task);
+            context.startActivity(intent);
         });
+
+        holder.taskMenu.setOnClickListener(v -> showTaskMenu(v, task));
+    }
+
+    private void showTaskMenu(View view, Task task) {
+        PopupMenu popupMenu = new PopupMenu(context, view);
+        MenuInflater inflater = popupMenu.getMenuInflater();
+        inflater.inflate(R.menu.task_menu, popupMenu.getMenu());
+
+        popupMenu.setOnMenuItemClickListener(item -> {
+            int itemId = item.getItemId();
+
+            if (itemId == R.id.menu_edit) {
+                onEdit(task);
+                return true;
+            } else if (itemId == R.id.menu_delete) {
+                listener.onDelete(task);
+                return true;
+            } else if (itemId == R.id.mark_complete) {
+                listener.onCategoryChange(task, "Complete");
+                return true;
+            } else if (itemId == R.id.mark_review) {
+                listener.onCategoryChange(task, "Review");
+                return true;
+            } else if (itemId == R.id.mark_progress) {
+                listener.onCategoryChange(task, "Progress");
+                return true;
+            } else if (itemId == R.id.mark_on_hold) {
+                listener.onCategoryChange(task, "On Hold");
+                return true;
+            }
+            return false;
+        });
+
+        popupMenu.show();
     }
 
     @Override
     public int getItemCount() {
         return taskList.size();
+    }
+
+    private void onEdit(Task task) {
+        Intent editIntent = new Intent(context, EditTaskActivity.class);
+        editIntent.putExtra("task", task);
+        ((Activity) context).startActivityForResult(editIntent, EDIT_TASK_REQUEST);
+    }
+
+    public static class TaskViewHolder extends RecyclerView.ViewHolder {
+        TextView taskTitle, taskDetails, taskDate, taskResource, taskType;
+        ImageView taskMenu;
+        Button buttonViewTask;
+
+        public TaskViewHolder(@NonNull View itemView) {
+            super(itemView);
+            taskTitle = itemView.findViewById(R.id.taskTitle);
+            taskDetails = itemView.findViewById(R.id.taskDetails);
+            taskDate = itemView.findViewById(R.id.taskDate);
+            taskResource = itemView.findViewById(R.id.taskResource);
+            taskType = itemView.findViewById(R.id.taskType);
+            taskMenu = itemView.findViewById(R.id.taskMenu);
+            buttonViewTask = itemView.findViewById(R.id.buttonViewTask);
+        }
     }
 }

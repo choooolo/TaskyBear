@@ -11,9 +11,9 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.Spinner;
-import android.widget.TextView;
+import android.widget.PopupMenu;
 import android.widget.Toast;
+import android.widget.Spinner;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,7 +34,7 @@ public class ToDoActivity extends AppCompatActivity {
     private Button completeBtn, reviewBtn, progressBtn, onHoldBtn;
     private DatabaseHelper dbHelper;
     private String currentCategory = "Progress";
-
+    private static final int EDIT_TASK_REQUEST = 1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,31 +89,23 @@ public class ToDoActivity extends AppCompatActivity {
         updateButtonStates(currentCategory);
         openDialogButton.setOnClickListener(v -> showAddTaskDialog());
 
-        homebtn.setOnClickListener(v -> {
-            Intent intent = new Intent(ToDoActivity.this, HomeActivity.class);
-            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
-            startActivity(intent);
-        });
-        shelfbtn.setOnClickListener(v -> {
-            Intent intent = new Intent(ToDoActivity.this, ShelfActivity.class);
-            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
-            startActivity(intent);
-        });
-        profilebtn.setOnClickListener(v -> {
-            Intent intent = new Intent(ToDoActivity.this, ProfileActivity.class);
-            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
-            startActivity(intent);
-        });
-        schedbtn.setOnClickListener(v -> {
-            Intent intent = new Intent(ToDoActivity.this, ScheduleActivity.class);
-            intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
-            startActivity(intent);
-        });
+        // Navigation button listeners
+        homebtn.setOnClickListener(v -> navigateTo(HomeActivity.class));
+        shelfbtn.setOnClickListener(v -> navigateTo(ShelfActivity.class));
+        profilebtn.setOnClickListener(v -> navigateTo(ProfileActivity.class));
+        schedbtn.setOnClickListener(v -> navigateTo(ScheduleActivity.class));
 
+        // Category filter buttons
         completeBtn.setOnClickListener(v -> setCategoryFilter("Complete"));
         reviewBtn.setOnClickListener(v -> setCategoryFilter("Review"));
         progressBtn.setOnClickListener(v -> setCategoryFilter("Progress"));
         onHoldBtn.setOnClickListener(v -> setCategoryFilter("On Hold"));
+    }
+
+    private void navigateTo(Class<?> cls) {
+        Intent intent = new Intent(ToDoActivity.this, cls);
+        intent.putExtra("USERNAME", getIntent().getStringExtra("USERNAME"));
+        startActivity(intent);
     }
 
     private void setCategoryFilter(String category) {
@@ -166,21 +158,22 @@ public class ToDoActivity extends AppCompatActivity {
         dialog.show();
 
         EditText taskNameInput = dialogView.findViewById(R.id.taskNameInput);
-        Spinner resourceSpinner = dialogView.findViewById(R.id.resourceSpinner);
         EditText taskDetails = dialogView.findViewById(R.id.taskDetails);
         Button dueDateButton = dialogView.findViewById(R.id.dueDateButton);
         Button backButton = dialogView.findViewById(R.id.backButton);
         Button doneButton = dialogView.findViewById(R.id.doneButton);
 
-        ArrayList<String> resources = new ArrayList<>();
-        resources.add("None");
-        resources.add("Resource 1");
-        resources.add("Resource 2");
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resources);
-        resourceSpinner.setAdapter(adapter);
+        Spinner typeSpinner = dialogView.findViewById(R.id.typeSpinner);
 
         final Calendar calendar = Calendar.getInstance();
         final String[] selectedDate = {""};
+
+
+        ArrayAdapter<CharSequence> typeAdapter = ArrayAdapter.createFromResource(this,
+                R.array.task_types, android.R.layout.simple_spinner_item);
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        typeSpinner.setAdapter(typeAdapter);
+
         dueDateButton.setOnClickListener(view -> {
             DatePickerDialog datePicker = new DatePickerDialog(ToDoActivity.this,
                     (view1, year, month, dayOfMonth) -> {
@@ -199,7 +192,7 @@ public class ToDoActivity extends AppCompatActivity {
             String taskName = taskNameInput.getText().toString().trim();
             String taskDetailText = taskDetails.getText().toString().trim();
             String date = selectedDate[0];
-
+            String type = typeSpinner.getSelectedItem().toString();
             // Validation checks
             if (taskName.isEmpty()) {
                 Toast.makeText(this, "Please enter a task title", Toast.LENGTH_SHORT).show();
@@ -214,10 +207,8 @@ public class ToDoActivity extends AppCompatActivity {
                 return;
             }
 
-            String selectedResource = resourceSpinner.getSelectedItem().toString();
             int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
-
-            Task newTask = new Task(taskName, taskDetailText, formatDateForStorage(date), selectedResource, "Progress");
+            Task newTask = new Task(taskName, taskDetailText, formatDateForStorage(date), "None", "Progress", type);
             dbHelper.insertTask(newTask, userId);
 
             reloadTasks(userId);
@@ -231,7 +222,6 @@ public class ToDoActivity extends AppCompatActivity {
         dialog.show();
 
         EditText taskNameInput = dialogView.findViewById(R.id.taskNameInput);
-        Spinner resourceSpinner = dialogView.findViewById(R.id.resourceSpinner);
         EditText taskDetailsInput = dialogView.findViewById(R.id.taskDetails);
         Button dueDateButton = dialogView.findViewById(R.id.dueDateButton);
         Button backButton = dialogView.findViewById(R.id.backButton);
@@ -240,21 +230,20 @@ public class ToDoActivity extends AppCompatActivity {
         taskNameInput.setText(task.getTitle());
         taskDetailsInput.setText(task.getDetails());
         dueDateButton.setText(task.getDate());
+        Spinner typeSpinner = dialogView.findViewById(R.id.typeSpinner);
 
-        ArrayList<String> resources = new ArrayList<>();
-        resources.add("None");
-        resources.add("Resource 1");
-        resources.add("Resource 2");
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, resources);
-        resourceSpinner.setAdapter(adapter);
-
-        int resourceIndex = resources.indexOf(task.getResource());
-        if (resourceIndex >= 0) {
-            resourceSpinner.setSelection(resourceIndex);
-        }
 
         final Calendar calendar = Calendar.getInstance();
         final String[] selectedDate = {task.getDate()};
+
+
+        ArrayAdapter<CharSequence> typeAdapter = ArrayAdapter.createFromResource(this,
+                R.array.task_types, android.R.layout.simple_spinner_item);
+        typeSpinner.setAdapter(typeAdapter);
+        int typePosition = typeAdapter.getPosition(task.getType());
+        typeSpinner.setSelection(typePosition);
+
+
 
         dueDateButton.setOnClickListener(view -> {
             DatePickerDialog datePicker = new DatePickerDialog(ToDoActivity.this,
@@ -292,7 +281,7 @@ public class ToDoActivity extends AppCompatActivity {
             task.setTitle(taskName);
             task.setDetails(taskDetailText);
             task.setDate(formatDateForStorage(date));
-            task.setResource(resourceSpinner.getSelectedItem().toString());
+            task.setType(typeSpinner.getSelectedItem().toString());
 
             int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
             dbHelper.updateTask(task, userId);
@@ -326,5 +315,52 @@ public class ToDoActivity extends AppCompatActivity {
         taskList.clear();
         taskList.addAll(tasks);
         adapter.notifyDataSetChanged();
+    }
+
+    private void showTypeFilterPopupMenu() {
+        PopupMenu popup = new PopupMenu(this, findViewById(R.id.menuIcon));
+        popup.getMenuInflater().inflate(R.menu.type_filter_menu, popup.getMenu());
+
+        // Get userId from SharedPreferences
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        popup.setOnMenuItemClickListener(item -> {
+            String type = "All"; // Default
+            if (item.getItemId() == R.id.filter_type_none) {
+                type = "None";
+            } else if (item.getItemId() == R.id.filter_type_mobile) {
+                type = "Mobile Dev";
+            } // ... other types
+
+            ArrayList<Task> filteredTasks = dbHelper.getTasksByType(userId, type);
+            taskList.clear();
+            taskList.addAll(filteredTasks);
+            adapter.notifyDataSetChanged();
+            return true;
+        });
+
+        popup.show();
+    }
+
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == EDIT_TASK_REQUEST && resultCode == RESULT_OK && data != null) {
+            Task updatedTask = (Task) data.getSerializableExtra("updatedTask");
+            if (updatedTask != null) {
+                for (int i = 0; i < taskList.size(); i++) {
+                    if (taskList.get(i).getTitle().equals(updatedTask.getTitle())) {
+                        taskList.set(i, updatedTask);
+                        break;
+                    }
+                }
+                adapter.notifyDataSetChanged();
+
+                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+                dbHelper.updateTask(updatedTask, userId);
+            }
+        }
     }
 }

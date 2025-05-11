@@ -11,7 +11,6 @@
         android:text="Task Title"
         android:textStyle="bold"
         android:textColor="#000"
-
         android:layout_marginBottom="8dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
@@ -23,10 +22,12 @@
         android:hint="Task Name"
         android:background="@drawable/outline_black_box"
         android:padding="10dp" />
+
     <TextView
         android:text="Task Details"
         android:textStyle="bold"
         android:textColor="#000"
+        android:layout_marginTop="12dp"
         android:layout_marginBottom="8dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
@@ -35,21 +36,24 @@
         android:id="@+id/taskDetails"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:hint="Dscription"
+        android:hint="Description"
         android:background="@drawable/outline_black_box"
         android:padding="10dp" />
 
 
+
+    <!-- TYPE Spinner Section -->
     <TextView
-        android:layout_marginTop="16dp"
-        android:text="Add Resources from Shelf"
+        android:text="Type"
         android:textStyle="bold"
         android:textColor="#000"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
     <Spinner
-        android:id="@+id/resourceSpinner"
+        android:id="@+id/typeSpinner"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@drawable/outline_black_box"
@@ -59,8 +63,8 @@
         android:id="@+id/dueDateButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="left
-"       android:backgroundTint="#FFC0CB"
+        android:layout_gravity="left"
+        android:backgroundTint="#FFC0CB"
         android:textColor="@color/black"
         android:layout_marginTop="16dp"
         android:text="Add Due Date" />

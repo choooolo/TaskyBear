@@ -162,14 +162,9 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void loadTasksForDate(String selectedDate) {
-        // Get user ID from SharedPreferences
         int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        List<Task> tasks = dbHelper.getTasksForDateAndCategory(userId, selectedDate, "Progress");
 
-        // Get tasks from database
-        DatabaseHelper databaseHelper = new DatabaseHelper(this);
-        List<Task> tasks = databaseHelper.getTasksForDateAndCategory(userId, selectedDate, "Progress");
-
-        // Update UI
         taskList.removeAllViews();
 
         if (tasks.isEmpty()) {
@@ -182,10 +177,20 @@ public class HomeActivity extends AppCompatActivity {
                 taskView.setText(task.getTitle());
                 taskView.setTextSize(16);
                 taskView.setPadding(20, 10, 20, 10);
+
+                // Make task clickable
+                taskView.setOnClickListener(v -> {
+                    Intent intent = new Intent(HomeActivity.this, TaskDetails.class);
+                    intent.putExtra("task", task); // Only works if Task implements Serializable
+                    // assuming getId() exists
+                    startActivity(intent);
+                });
+
                 taskList.addView(taskView);
             }
         }
     }
+
 
     private void showTaskSummaryCounts() {
         int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
@@ -270,4 +275,6 @@ public class HomeActivity extends AppCompatActivity {
             productivityMessage.setText("Let's get started! You can do this! 🌱");
         }
     }
+
+
 }

@@ -32,7 +32,10 @@
         <activity android:name=".ForgotPasswordActivity" android:exported="true" />
         <activity android:name=".LoginActivity" android:exported="true" />
         <activity android:name=".CreateAccountActivity" android:exported="true" />
+        <activity android:name=".TaskDetails" android:exported="true"/>
+        <activity android:name=".EditTaskActivity" android:exported="true"/>
         <activity android:name=".LandingPageActivity" android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
