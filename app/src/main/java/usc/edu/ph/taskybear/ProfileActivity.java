@@ -21,6 +21,8 @@ import java.io.File;
 
 import com.bumptech.glide.Glide;
 
+import android.content.SharedPreferences;
+
 public class ProfileActivity extends AppCompatActivity {
     private ImageView todobtn, shelfbtn, homebtn, schedbtn;
     CircleImageView profileImage;
@@ -250,14 +252,25 @@ public class ProfileActivity extends AppCompatActivity {
 
         int userId = databaseHelper.getUserId(currentUsername);
         if (userId != -1) {
+            // Get current profile data to preserve the profile image
             UserProfile currentProfile = databaseHelper.getUserProfile(userId);
             String profileImageUri = currentProfile != null ? currentProfile.getProfileImageUri() : null;
 
-            databaseHelper.updateUserProfile(userId, username, email, phone, profileImageUri);
+            // Update the profile with all data including the preserved profile image
+            boolean success = databaseHelper.updateUserProfile(userId, username, email, phone, profileImageUri);
             
-            // Update current username if it was changed
-            if (!username.equals(currentUsername)) {
-                currentUsername = username;
+            if (success) {
+                // Update current username if it was changed
+                if (!username.equals(currentUsername)) {
+                    currentUsername = username;
+                    // Update SharedPreferences with new username
+                    SharedPreferences sharedPreferences = getSharedPreferences("TaskyPrefs", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("username", username);
+                    editor.apply();
+                }
+            } else {
+                Toast.makeText(this, "Failed to update profile", Toast.LENGTH_SHORT).show();
             }
         }
     }
