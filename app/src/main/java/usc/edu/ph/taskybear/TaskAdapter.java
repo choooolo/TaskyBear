@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.text.SimpleDateFormat;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
     private static final int EDIT_TASK_REQUEST = 1001;  // Added locally
@@ -50,7 +51,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
         holder.taskTitle.setText(task.getTitle());
         holder.taskDetails.setText(task.getDetails());
-        holder.taskDate.setText(task.getDate());
+        holder.taskDate.setText(formatDateForDisplay(task.getDate()));
         holder.taskResource.setText(task.getResource());
         holder.taskType.setText(task.getType());
 
@@ -61,6 +62,17 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         });
 
         holder.taskMenu.setOnClickListener(v -> showTaskMenu(v, task));
+    }
+
+    private String formatDateForDisplay(String date) {
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");
+            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
+            return outputFormat.format(inputFormat.parse(date));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return date;
+        }
     }
 
     private void showTaskMenu(View view, Task task) {
@@ -102,9 +114,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     private void onEdit(Task task) {
-        Intent editIntent = new Intent(context, EditTaskActivity.class);
-        editIntent.putExtra("task", task);
-        ((Activity) context).startActivityForResult(editIntent, EDIT_TASK_REQUEST);
+        listener.onEdit(task);
     }
 
     public static class TaskViewHolder extends RecyclerView.ViewHolder {

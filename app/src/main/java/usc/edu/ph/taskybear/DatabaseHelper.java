@@ -188,7 +188,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return result;
     }
 
-    public void insertTask(Task task, int userId) {
+    public long insertTask(Task task, int userId) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_TASK_TITLE, task.getTitle());
@@ -198,8 +198,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_TASK_CATEGORY, task.getCategory());
         values.put(COLUMN_TASK_TYPE, task.getType());
         values.put(COLUMN_USER_ID, userId);
-        db.insert(TABLE_TASKS, null, values);
+        long taskId = db.insert(TABLE_TASKS, null, values);
         db.close();
+        return taskId;
     }
 
     public List<Task> getTasksForUser(int userId) {
@@ -252,10 +253,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_TASK_CATEGORY, task.getCategory());
         values.put(COLUMN_TASK_TYPE, task.getType());
 
-        int rows = db.update(TABLE_TASKS,
-                values,
-                COLUMN_TASK_ID + "=? AND " + COLUMN_USER_ID + "=?",
-                new String[]{String.valueOf(task.getId()), String.valueOf(userId)});
+        String whereClause = COLUMN_TASK_ID + "=? AND " + COLUMN_USER_ID + "=?";
+        String[] whereArgs = new String[]{String.valueOf(task.getId()), String.valueOf(userId)};
+        
+        int rows = db.update(TABLE_TASKS, values, whereClause, whereArgs);
         db.close();
         return rows > 0;
     }
@@ -398,7 +399,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor cursor = db.query(TABLE_TASKS,
-                new String[]{COLUMN_TASK_TITLE, COLUMN_TASK_DETAILS, COLUMN_TASK_DATE,
+                new String[]{COLUMN_TASK_ID, COLUMN_TASK_TITLE, COLUMN_TASK_DETAILS, COLUMN_TASK_DATE,
                         COLUMN_TASK_RESOURCE, COLUMN_TASK_CATEGORY, COLUMN_TASK_TYPE},
                 COLUMN_USER_ID + "=? AND " + COLUMN_TASK_CATEGORY + "=?",
                 new String[]{String.valueOf(userId), category},
@@ -414,6 +415,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_CATEGORY)),
                         cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_TYPE))
                 );
+                task.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_TASK_ID)));
                 tasks.add(task);
             }
             cursor.close();

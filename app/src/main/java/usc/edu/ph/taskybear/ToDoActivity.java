@@ -3,6 +3,8 @@ package usc.edu.ph.taskybear;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -35,11 +37,17 @@ public class ToDoActivity extends AppCompatActivity {
     private DatabaseHelper dbHelper;
     private String currentCategory = "Progress";
     private static final int EDIT_TASK_REQUEST = 1;
+    private Handler refreshHandler;
+    private static final int REFRESH_INTERVAL = 2000; // 2 seconds
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_to_do);
 
+        // Initialize refresh handler
+        refreshHandler = new Handler(Looper.getMainLooper());
+        
         // Initialize views and buttons
         completeBtn = findViewById(R.id.completetodolist);
         reviewBtn = findViewById(R.id.reviewtodolist);
@@ -100,6 +108,33 @@ public class ToDoActivity extends AppCompatActivity {
         reviewBtn.setOnClickListener(v -> setCategoryFilter("Review"));
         progressBtn.setOnClickListener(v -> setCategoryFilter("Progress"));
         onHoldBtn.setOnClickListener(v -> setCategoryFilter("On Hold"));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startAutoRefresh();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopAutoRefresh();
+    }
+
+    private void startAutoRefresh() {
+        refreshHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+                reloadTasks(userId);
+                refreshHandler.postDelayed(this, REFRESH_INTERVAL);
+            }
+        }, REFRESH_INTERVAL);
+    }
+
+    private void stopAutoRefresh() {
+        refreshHandler.removeCallbacksAndMessages(null);
     }
 
     private void navigateTo(Class<?> cls) {
@@ -209,7 +244,8 @@ public class ToDoActivity extends AppCompatActivity {
 
             int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
             Task newTask = new Task(taskName, taskDetailText, formatDateForStorage(date), "None", "Progress", type);
-            dbHelper.insertTask(newTask, userId);
+            long taskId = dbHelper.insertTask(newTask, userId);
+            newTask.setId((int) taskId);
 
             reloadTasks(userId);
             dialog.dismiss();
@@ -218,7 +254,13 @@ public class ToDoActivity extends AppCompatActivity {
 
     private void showEditTaskDialog(Task task) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(dialogView).create();
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create();
+        
+        // Remove the dialog background
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         dialog.show();
 
         EditText taskNameInput = dialogView.findViewById(R.id.taskNameInput);
@@ -226,24 +268,23 @@ public class ToDoActivity extends AppCompatActivity {
         Button dueDateButton = dialogView.findViewById(R.id.dueDateButton);
         Button backButton = dialogView.findViewById(R.id.backButton);
         Button doneButton = dialogView.findViewById(R.id.doneButton);
-
-        taskNameInput.setText(task.getTitle());
-        taskDetailsInput.setText(task.getDetails());
-        dueDateButton.setText(task.getDate());
         Spinner typeSpinner = dialogView.findViewById(R.id.typeSpinner);
 
+        // Set initial values
+        taskNameInput.setText(task.getTitle());
+        taskDetailsInput.setText(task.getDetails());
+        dueDateButton.setText(formatDateForDisplay(task.getDate()));
 
-        final Calendar calendar = Calendar.getInstance();
-        final String[] selectedDate = {task.getDate()};
-
-
+        // Setup type spinner
         ArrayAdapter<CharSequence> typeAdapter = ArrayAdapter.createFromResource(this,
                 R.array.task_types, android.R.layout.simple_spinner_item);
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         typeSpinner.setAdapter(typeAdapter);
         int typePosition = typeAdapter.getPosition(task.getType());
         typeSpinner.setSelection(typePosition);
 
-
+        final Calendar calendar = Calendar.getInstance();
+        final String[] selectedDate = {task.getDate()};
 
         dueDateButton.setOnClickListener(view -> {
             DatePickerDialog datePicker = new DatePickerDialog(ToDoActivity.this,
@@ -263,6 +304,7 @@ public class ToDoActivity extends AppCompatActivity {
             String taskName = taskNameInput.getText().toString().trim();
             String taskDetailText = taskDetailsInput.getText().toString().trim();
             String date = selectedDate[0];
+            String type = typeSpinner.getSelectedItem().toString();
 
             // Validation checks
             if (taskName.isEmpty()) {
@@ -278,16 +320,28 @@ public class ToDoActivity extends AppCompatActivity {
                 return;
             }
 
+            // Update task
             task.setTitle(taskName);
             task.setDetails(taskDetailText);
             task.setDate(formatDateForStorage(date));
-            task.setType(typeSpinner.getSelectedItem().toString());
+            task.setType(type);
 
             int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
-            dbHelper.updateTask(task, userId);
-
-            reloadTasks(userId);
-            dialog.dismiss();
+            boolean success = dbHelper.updateTask(task, userId);
+            if (success) {
+                Toast.makeText(this, "Task updated successfully", Toast.LENGTH_SHORT).show();
+                // Update the task in the list
+                int position = taskList.indexOf(task);
+                if (position != -1) {
+                    taskList.set(position, task);
+                    adapter.notifyItemChanged(position);
+                }
+                // Reload tasks to ensure everything is in sync
+                reloadTasks(userId);
+                dialog.dismiss();
+            } else {
+                Toast.makeText(this, "Failed to update task", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -310,10 +364,31 @@ public class ToDoActivity extends AppCompatActivity {
         return months[month];
     }
 
+    private String formatDateForDisplay(String date) {
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");
+            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy");
+            return outputFormat.format(inputFormat.parse(date));
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
     private void reloadTasks(int userId) {
         ArrayList<Task> tasks = dbHelper.getTasksByCategory(userId, currentCategory);
         taskList.clear();
-        taskList.addAll(tasks);
+        for (Task task : tasks) {
+            // Ensure each task has its ID set
+            if (task.getId() <= 0) {
+                // If task doesn't have an ID, try to get it from the database
+                Task dbTask = dbHelper.getTaskById(task.getId(), userId);
+                if (dbTask != null) {
+                    task.setId(dbTask.getId());
+                }
+            }
+            taskList.add(task);
+        }
         adapter.notifyDataSetChanged();
     }
 
@@ -348,18 +423,24 @@ public class ToDoActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == EDIT_TASK_REQUEST && resultCode == RESULT_OK && data != null) {
-            Task updatedTask = (Task) data.getSerializableExtra("updatedTask");
-            if (updatedTask != null) {
-                for (int i = 0; i < taskList.size(); i++) {
-                    if (taskList.get(i).getTitle().equals(updatedTask.getTitle())) {
-                        taskList.set(i, updatedTask);
-                        break;
-                    }
-                }
-                adapter.notifyDataSetChanged();
+            // Get the updated task data
+            int taskId = data.getIntExtra("TASK_ID", -1);
+            String taskTitle = data.getStringExtra("TASK_TITLE");
+            String taskDetails = data.getStringExtra("TASK_DETAILS");
+            String taskDate = data.getStringExtra("TASK_DATE");
+            String taskType = data.getStringExtra("TASK_TYPE");
 
-                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
-                dbHelper.updateTask(updatedTask, userId);
+            // Find and update the task in the list
+            for (int i = 0; i < taskList.size(); i++) {
+                Task task = taskList.get(i);
+                if (task.getId() == taskId) {
+                    task.setTitle(taskTitle);
+                    task.setDetails(taskDetails);
+                    task.setDate(taskDate);
+                    task.setType(taskType);
+                    adapter.notifyItemChanged(i);
+                    break;
+                }
             }
         }
     }
