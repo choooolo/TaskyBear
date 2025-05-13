@@ -27,18 +27,14 @@
                     android:scaleType="fitXY"
                     android:src="@drawable/headr" />
 
-                <ImageView
+                <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/profilePic"
-                    android:layout_width="74dp"
-                    android:layout_height="74dp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="40dp"
-                    android:background="@drawable/circle"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_margin="16dp"
                     android:scaleType="centerCrop"
                     android:src="@drawable/profile_placeholder"
-                    android:layout_alignParentStart="true"
-                    android:outlineProvider="background"
-                    android:clipToOutline="true" />
+                    app:shapeAppearanceOverlay="@style/CircleImageShape" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
