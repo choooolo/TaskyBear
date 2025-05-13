@@ -2,6 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#FAFAFA"
     android:padding="16dp">
 
     <LinearLayout
@@ -11,49 +13,68 @@
         android:gravity="center_horizontal"
         android:paddingBottom="24dp">
 
-        <EditText
-            android:id="@+id/editTitle"
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Title"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:padding="12dp"
-            android:background="?android:attr/editTextBackground"
-            android:layout_marginBottom="12dp" />
+            app:cardCornerRadius="16dp"
+            app:cardElevation="6dp"
+            android:layout_marginBottom="24dp">
 
-        <EditText
-            android:id="@+id/editDetails"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Details"
-            android:minLines="4"
-            android:padding="12dp"
-            android:background="?android:attr/editTextBackground"
-            android:layout_marginBottom="12dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
 
-        <EditText
-            android:id="@+id/editDate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Date"
-            android:minHeight="48dp"
-            android:padding="12dp"
-            android:background="?android:attr/editTextBackground"
-            android:layout_marginBottom="12dp" />
+                <EditText
+                    android:id="@+id/editTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Title"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:padding="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="?android:attr/editTextBackground" />
 
+                <EditText
+                    android:id="@+id/editDetails"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Details"
+                    android:minLines="4"
+                    android:padding="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="?android:attr/editTextBackground" />
 
-        <Spinner
-            android:id="@+id/editType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:layout_marginBottom="24dp" />
+                <EditText
+                    android:id="@+id/editDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Date"
+                    android:minHeight="48dp"
+                    android:padding="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="?android:attr/editTextBackground" />
+
+                <Spinner
+                    android:id="@+id/editType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:layout_marginBottom="12dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
         <Button
             android:id="@+id/saveButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save Changes" />
+            android:text="Save Changes"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#FFC0CB"
+            android:elevation="4dp"
+            android:padding="12dp" />
     </LinearLayout>
 </ScrollView>
