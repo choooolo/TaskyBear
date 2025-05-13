@@ -52,9 +52,10 @@
                 android:id="@+id/bookTitleInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
                 android:hint="Book Title"
                 android:inputType="text"
-                android:layout_marginBottom="8dp"/>
+                android:minHeight="48dp" />
 
             <Button
                 android:id="@+id/chooseFileBtn"

@@ -38,7 +38,7 @@
             <EditText
                 android:id="@+id/bookTitle"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:text="Book Title"
                 android:textSize="16sp"
                 android:textColor="#000000"
@@ -47,26 +47,28 @@
 
             <ImageButton
                 android:id="@+id/editTitleBtn"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:scaleType="centerInside"
                 android:layout_marginStart="8dp"
                 android:src="@drawable/edit_icon"
                 android:background="@null"
+                android:contentDescription="Edit Title"
                 app:tint="@color/pink" /> <!-- Removed background for testing -->
         </LinearLayout>
 
         <!-- Delete Button (Trash) positioned at top-right -->
         <ImageButton
             android:id="@+id/deleteBookBtn"
-            android:layout_width="35dp"
-            android:layout_height="30dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_alignParentEnd="true"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:scaleType="centerInside"
             android:src="@drawable/trash_icon"
             android:background="@null"
+            android:contentDescription="Delete Button"
             app:tint="@color/pink" /> <!-- Removed background for testing -->
 
         <!-- Open Button -->
