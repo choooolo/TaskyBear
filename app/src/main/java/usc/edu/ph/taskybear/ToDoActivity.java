@@ -93,6 +93,13 @@ public class ToDoActivity extends AppCompatActivity {
             currentCategory = getIntent().getStringExtra("filterCategory");
         }
 
+        if (getIntent().hasExtra("filterType")) {
+            String type = getIntent().getStringExtra("filterType");
+            filterTasksByType(type);
+        } else {
+            reloadTasks(userId);
+        }
+
         reloadTasks(userId);
         updateButtonStates(currentCategory);
         openDialogButton.setOnClickListener(v -> showAddTaskDialog());
@@ -114,6 +121,18 @@ public class ToDoActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         startAutoRefresh();
+    }
+
+    private void filterTasksByType(String type) {
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        ArrayList<Task> filteredTasks = dbHelper.getTasksByType(userId, type);
+
+        taskList.clear();
+        taskList.addAll(filteredTasks);
+        adapter.notifyDataSetChanged();
+
+        // Show a message about the current filter
+        Toast.makeText(this, "Showing tasks for: " + type, Toast.LENGTH_SHORT).show();
     }
 
     @Override

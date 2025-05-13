@@ -1,236 +1,141 @@
 package usc.edu.ph.taskybear;
 
-import android.app.DatePickerDialog;
-import android.content.ContentResolver;
 import android.content.Intent;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.*;
-
-import androidx.activity.EdgeToEdge;
-import androidx.annotation.Nullable;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Calendar;
+import java.util.List;
 
 public class ScheduleActivity extends AppCompatActivity {
-    private static final int FILE_SELECT_CODE = 1;
-
-    private ImageView todobtn, shelfbtn, profilebtn, homebtn, schedulebtn;
-    private LinearLayout uploadCardContainer, scheduleDisplayContainer;
-    private Button selectFromDeviceBtn, uploadBtn;
-    private EditText linkInput;
-    private Switch everydaySwitch, durationSwitch;
-    private ImageView calendarBtn, fab, deleteIcon;
-    private TextView selectedDateText;
-
-    private String selectedDate = "";
-    private boolean isUploadCardVisible = false;
-    private String uploadedFileName = "";
+    private TableLayout tableLayout;
+    private DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_schedule);
 
-        // Navigation
-        todobtn = findViewById(R.id.todobtn);
-        shelfbtn = findViewById(R.id.shelfbtn);
-        homebtn = findViewById(R.id.homebtn);
-        profilebtn = findViewById(R.id.profilebtn);
-        schedulebtn = findViewById(R.id.schedbtn);
+        tableLayout = findViewById(R.id.timetable);
+        dbHelper = new DatabaseHelper(this);
 
-        todobtn.setOnClickListener(v -> startActivity(new Intent(this, ToDoActivity.class)));
-        shelfbtn.setOnClickListener(v -> startActivity(new Intent(this, ShelfActivity.class)));
-        homebtn.setOnClickListener(v -> startActivity(new Intent(this, HomeActivity.class)));
-        profilebtn.setOnClickListener(v -> startActivity(new Intent(this, ProfileActivity.class)));
-        schedulebtn.setOnClickListener(v -> {}); // Already here
-
-        // UI elements
-        uploadCardContainer = findViewById(R.id.uploadCardContainer);
-        uploadCardContainer.setVisibility(View.GONE);
-        scheduleDisplayContainer = findViewById(R.id.scheduleDisplayContainer);
-        fab = findViewById(R.id.fab);
-        fab.setOnClickListener(v -> toggleUploadCard());
-
-        selectFromDeviceBtn = findViewById(R.id.selectFromDeviceBtn);
-        linkInput = findViewById(R.id.linkInput);
-        everydaySwitch = findViewById(R.id.everydaySwitch);
-        durationSwitch = findViewById(R.id.durationSwitch);
-        calendarBtn = findViewById(R.id.calendarBtn);
-        selectedDateText = findViewById(R.id.selectedDateText);
-        uploadBtn = findViewById(R.id.uploadBtn);
-        deleteIcon = findViewById(R.id.deleteIcon);
-
-        selectFromDeviceBtn.setOnClickListener(v -> openFilePicker());
-        calendarBtn.setOnClickListener(v -> showDatePicker());
-        deleteIcon.setOnClickListener(v -> hideUploadCard());
-
-        uploadBtn.setOnClickListener(v -> {
-            String link = linkInput.getText().toString().trim();
-            boolean isEveryday = everydaySwitch.isChecked();
-
-            if (link.isEmpty() && uploadedFileName.isEmpty()) {
-                Toast.makeText(this, "Please provide a link or upload a file", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            if (selectedDate.isEmpty()) {
-                Toast.makeText(this, "Please select a date", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            String source = !link.isEmpty() ? link : uploadedFileName;
-            addScheduleItem(source, selectedDate, isEveryday);
-
-            // Reset form
-            linkInput.setText("");
-            everydaySwitch.setChecked(false);
-            durationSwitch.setChecked(false);
-            selectedDate = "";
-            uploadedFileName = "";
-            selectedDateText.setText("Selected Date:");
-
-            Toast.makeText(this, "Schedule added", Toast.LENGTH_SHORT).show();
-            hideUploadCard();
-        });
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        populateTimetable(userId);
     }
 
-    private void toggleUploadCard() {
-        if (isUploadCardVisible) hideUploadCard();
-        else showUploadCard();
-    }
+    private void populateTimetable(int userId) {
+        // Clear existing views
+        tableLayout.removeAllViews();
 
-    private void showUploadCard() {
-        uploadCardContainer.setVisibility(View.VISIBLE);
-        isUploadCardVisible = true;
-    }
+        // Create header row
+        TableRow headerRow = new TableRow(this);
+        addHeaderCell(headerRow, "Time");
+        addHeaderCell(headerRow, "Monday");
+        addHeaderCell(headerRow, "Tuesday");
+        addHeaderCell(headerRow, "Wednesday");
+        addHeaderCell(headerRow, "Thursday");
+        addHeaderCell(headerRow, "Friday");
+        addHeaderCell(headerRow, "Saturday");
+        tableLayout.addView(headerRow);
 
-    private void hideUploadCard() {
-        uploadCardContainer.setVisibility(View.GONE);
-        isUploadCardVisible = false;
-    }
+        // Define time slots
+        String[] timeSlots = {
+                "07:30 AM - 08:00 AM",
+                "08:00 AM - 08:30 AM",
+                "08:30 AM - 09:00 AM",
+                "09:00 AM - 09:30 AM",
+                "09:30 AM - 10:00 AM",
+                "10:00 AM - 10:30 AM",
+                "10:30 AM - 11:00 AM",
+                "11:00 AM - 11:30 AM",
+                "11:30 AM - 12:00 PM",
+                "12:00 PM - 12:30 PM",
+                "12:30 PM - 01:00 PM",
+                "01:00 PM - 01:30 PM",
+                "01:30 PM - 02:00 PM",
+                "02:00 PM - 02:30 PM",
+                "02:30 PM - 03:00 PM",
+                "03:00 PM - 03:30 PM",
+                "03:30 PM - 04:00 PM",
+                "04:00 PM - 04:30 PM"
+        };
 
-    private void openFilePicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
-        String[] mimetypes = {"application/pdf", "text/csv", "text/calendar", "application/octet-stream"};
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimetypes);
-        startActivityForResult(Intent.createChooser(intent, "Select Schedule File"), FILE_SELECT_CODE);
-    }
+        // Get all timetable entries
+        List<TimetableEntry> entries = dbHelper.getTimetableEntries(userId);
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == FILE_SELECT_CODE && resultCode == RESULT_OK && data != null) {
-            Uri uri = data.getData();
-            uploadedFileName = getFileNameFromUri(uri);
-            parseFile(uri);
-        }
-    }
+        // Create rows for each time slot
+        for (String timeSlot : timeSlots) {
+            TableRow row = new TableRow(this);
+            addCell(row, timeSlot, false);
 
-    private String getFileNameFromUri(Uri uri) {
-        String result = "";
-        if (uri.getScheme().equals("content")) {
-            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
-            try {
-                if (cursor != null && cursor.moveToFirst()) {
-                    result = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+            // Add cells for each day (Monday to Saturday)
+            for (int day = 0; day < 6; day++) {
+                String dayName = getDayName(day);
+                String classInfo = findClassForTimeSlot(entries, dayName, timeSlot);
+
+                TextView cell = new TextView(this);
+                cell.setText(classInfo);
+                cell.setPadding(8, 8, 8, 8);
+
+                // Make the cell clickable if it has a class
+                if (!classInfo.isEmpty()) {
+                    String type = getTypeForClass(entries, dayName, timeSlot);
+                    cell.setOnClickListener(v -> {
+                        Intent intent = new Intent(ScheduleActivity.this, ToDoActivity.class);
+                        intent.putExtra("filterType", type);
+                        startActivity(intent);
+                    });
                 }
-            } finally {
-                if (cursor != null) cursor.close();
-            }
-        }
-        if (result == null || result.isEmpty()) {
-            result = uri.getPath();
-            int cut = result.lastIndexOf('/');
-            if (cut != -1) result = result.substring(cut + 1);
-        }
-        return result;
-    }
 
-    private void parseFile(Uri uri) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            StringBuilder fileContent = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                fileContent.append(line).append("\n");
+                row.addView(cell);
             }
-            reader.close();
-            Toast.makeText(this, "File loaded: " + uploadedFileName, Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Failed to read file", Toast.LENGTH_SHORT).show();
+
+            tableLayout.addView(row);
         }
     }
 
-    private void showDatePicker() {
-        final Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
-                (view, year1, month1, dayOfMonth) -> {
-                    selectedDate = (month1 + 1) + "/" + dayOfMonth + "/" + year1;
-                    selectedDateText.setText("Selected Date: " + selectedDate);
-                }, year, month, day);
-        datePickerDialog.show();
+    private String getDayName(int index) {
+        String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+        return days[index];
     }
 
-    private void addScheduleItem(String source, String date, boolean isEveryday) {
-        View itemView = LayoutInflater.from(this).inflate(R.layout.schedule_item_layout, scheduleDisplayContainer, false);
-
-        TextView pdfName = itemView.findViewById(R.id.pdfName);
-        TextView durationText = itemView.findViewById(R.id.scheduleDuration);
-        TextView scheduleDate = itemView.findViewById(R.id.scheduleDate);
-        TextView scheduleSource = itemView.findViewById(R.id.scheduleSource);
-
-        // Show file name or link
-        pdfName.setText("Uploaded: " + source);
-
-        // Compute dynamic durationaa
-        int durationDays = 0;
-        if (!date.equals("Unknown") && !date.isEmpty()) {
-            try {
-                String[] parts = date.split("/");
-                int month = Integer.parseInt(parts[0]) - 1;
-                int day = Integer.parseInt(parts[1]);
-                int year = Integer.parseInt(parts[2]);
-
-                Calendar selectedCal = Calendar.getInstance();
-                selectedCal.set(year, month, day, 0, 0, 0);
-                selectedCal.set(Calendar.MILLISECOND, 0);
-
-                Calendar today = Calendar.getInstance();
-                today.set(Calendar.HOUR_OF_DAY, 0);
-                today.set(Calendar.MINUTE, 0);
-                today.set(Calendar.SECOND, 0);
-                today.set(Calendar.MILLISECOND, 0);
-
-                long diffMillis = selectedCal.getTimeInMillis() - today.getTimeInMillis();
-                durationDays = (int) Math.ceil(diffMillis / (1000.0 * 60 * 60 * 24));
-                if (durationDays < 0) durationDays = 0;
-            } catch (Exception e) {
-                e.printStackTrace();
+    private String findClassForTimeSlot(List<TimetableEntry> entries, String day, String timeSlot) {
+        for (TimetableEntry entry : entries) {
+            if (entry.getDay().equalsIgnoreCase(day) &&
+                    entry.getStartTime().equals(timeSlot.split(" - ")[0])) {
+                return entry.getClassName() + "\n" + entry.getLocation();
             }
         }
+        return "";
+    }
 
-        durationText.setText("Duration: " + durationDays + " days");
-        scheduleDate.setText(date.isEmpty() ? "N/A" : date);
-        scheduleSource.setText(linkInput.getText().toString().isEmpty() ? "From file" : "From link");
+    private String getTypeForClass(List<TimetableEntry> entries, String day, String timeSlot) {
+        for (TimetableEntry entry : entries) {
+            if (entry.getDay().equalsIgnoreCase(day) &&
+                    entry.getStartTime().equals(timeSlot.split(" - ")[0])) {
+                return entry.getType();
+            }
+        }
+        return "";
+    }
 
-        scheduleDisplayContainer.addView(itemView);
+    private void addHeaderCell(TableRow row, String text) {
+        TextView textView = new TextView(this);
+        textView.setText(text);
+        textView.setPadding(8, 8, 8, 8);
+        textView.setBackgroundColor(getResources().getColor(R.color.table_header));
+        row.addView(textView);
+    }
+
+    private void addCell(TableRow row, String text, boolean withBorder) {
+        TextView textView = new TextView(this);
+        textView.setText(text);
+        textView.setPadding(8, 8, 8, 8);
+        if (withBorder) {
+            textView.setBackgroundResource(R.drawable.cell_border);
+        }
+        row.addView(textView);
     }
 }

@@ -14,7 +14,7 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "TaskyBear.db";
-    private static final int DATABASE_VERSION = 4; // New version number
+    private static final int DATABASE_VERSION = 7; // New version number
 
     // User table
     public static final String TABLE_USERS = "users";
@@ -35,6 +35,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_TASK_CATEGORY = "category";
     public static final String COLUMN_USER_ID = "user_id";
     public static final String COLUMN_TASK_TYPE = "type";
+
+    public static final String TABLE_TIMETABLE = "timetable";
+    public static final String COLUMN_TIMETABLE_ID = "timetable_id";
+    public static final String COLUMN_CLASS_NAME = "class_name";
+    public static final String COLUMN_TYPE = "type";
+    public static final String COLUMN_DAY = "day";
+    public static final String COLUMN_START_TIME = "start_time";
+    public static final String COLUMN_END_TIME = "end_time";
+    public static final String COLUMN_LOCATION = "location";
+
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -64,14 +74,101 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_USER_ID + " INTEGER, "
                 + "FOREIGN KEY(" + COLUMN_USER_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_ID + "))";
         db.execSQL(CREATE_TASKS_TABLE);
+
+        String CREATE_TIMETABLE_TABLE = "CREATE TABLE " + TABLE_TIMETABLE + "("
+                + COLUMN_TIMETABLE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + COLUMN_CLASS_NAME + " TEXT, "
+                + COLUMN_TYPE + " TEXT, "  // This will match task types
+                + COLUMN_DAY + " TEXT, "
+                + COLUMN_START_TIME + " TEXT, "
+                + COLUMN_END_TIME + " TEXT, "
+                + COLUMN_LOCATION + " TEXT, "
+                + COLUMN_USER_ID + " INTEGER, "
+                + "FOREIGN KEY(" + COLUMN_USER_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_ID + "))";
+        db.execSQL(CREATE_TIMETABLE_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // For existing users, you need to alter the table to add the new column
-        if (oldVersion < 4) {  // Assuming version 3 is when you added the 'type' column
-            db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN " + COLUMN_TASK_TYPE + " TEXT DEFAULT 'None'");
+        if (oldVersion < 6) {
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_TIMETABLE);
+            onCreate(db);
         }
+    }
+    // Add new timetable methods
+    public long addTimetableEntry(String className, String type, String day,
+                                  String startTime, String endTime, String location, int userId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_CLASS_NAME, className);
+        values.put(COLUMN_TYPE, type);
+        values.put(COLUMN_DAY, day);
+        values.put(COLUMN_START_TIME, startTime);
+        values.put(COLUMN_END_TIME, endTime);
+        values.put(COLUMN_LOCATION, location);
+        values.put(COLUMN_USER_ID, userId);
+
+        return db.insert(TABLE_TIMETABLE, null, values);
+    }
+
+    public List<TimetableEntry> getTimetableEntries(int userId) {
+        List<TimetableEntry> entries = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(TABLE_TIMETABLE,
+                new String[]{COLUMN_TIMETABLE_ID, COLUMN_CLASS_NAME, COLUMN_TYPE,
+                        COLUMN_DAY, COLUMN_START_TIME, COLUMN_END_TIME, COLUMN_LOCATION},
+                COLUMN_USER_ID + "=?",
+                new String[]{String.valueOf(userId)},
+                null, null, COLUMN_DAY + ", " + COLUMN_START_TIME);
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                TimetableEntry entry = new TimetableEntry(
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CLASS_NAME)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TYPE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DAY)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_START_TIME)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_END_TIME)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_LOCATION))
+                );
+                entry.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_TIMETABLE_ID)));
+                entries.add(entry);
+            }
+            cursor.close();
+        }
+        db.close();
+        return entries;
+    }
+
+    public List<TimetableEntry> getTimetableEntriesByDay(int userId, String day) {
+        List<TimetableEntry> entries = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(TABLE_TIMETABLE,
+                new String[]{COLUMN_TIMETABLE_ID, COLUMN_CLASS_NAME, COLUMN_TYPE,
+                        COLUMN_DAY, COLUMN_START_TIME, COLUMN_END_TIME, COLUMN_LOCATION},
+                COLUMN_USER_ID + "=? AND " + COLUMN_DAY + "=?",
+                new String[]{String.valueOf(userId), day},
+                null, null, COLUMN_START_TIME);
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                TimetableEntry entry = new TimetableEntry(
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CLASS_NAME)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TYPE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DAY)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_START_TIME)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_END_TIME)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_LOCATION))
+                );
+                entry.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_TIMETABLE_ID)));
+                entries.add(entry);
+            }
+            cursor.close();
+        }
+        db.close();
+        return entries;
     }
 
     public boolean insertUser(String username, String password) {
