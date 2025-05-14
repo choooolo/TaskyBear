@@ -1,4 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/filter_type_all"
+        android:title="All Types" />
     <item
         android:id="@+id/filter_type_none"
         android:title="None" />
@@ -6,18 +10,9 @@
         android:id="@+id/filter_type_mobile"
         android:title="Mobile Dev" />
     <item
-        android:id="@+id/filter_type_english"
-        android:title="English Class" />
+        android:id="@+id/filter_type_web"
+        android:title="Web Dev" />
     <item
-        android:id="@+id/filter_type_history"
-        android:title="History" />
-    <item
-        android:id="@+id/filter_type_math"
-        android:title="Math" />
-    <item
-        android:id="@+id/filter_type_science"
-        android:title="Science" />
-    <item
-        android:id="@+id/filter_type_personal"
-        android:title="Personal" />
+        android:id="@+id/filter_type_design"
+        android:title="Design" />
 </menu>

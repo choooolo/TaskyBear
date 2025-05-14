@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -32,23 +33,23 @@ public class ToDoActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private TaskAdapter adapter;
     private ArrayList<Task> taskList;
-    private ImageView homebtn, shelfbtn, profilebtn, schedbtn;
+    private ImageView homebtn, shelfbtn, profilebtn, schedbtn, menuIcon;
     private Button completeBtn, reviewBtn, progressBtn, onHoldBtn;
     private DatabaseHelper dbHelper;
     private String currentCategory = "Progress";
+    private String currentFilterType = null;
     private static final int EDIT_TASK_REQUEST = 1;
     private Handler refreshHandler;
-    private static final int REFRESH_INTERVAL = 2000; // 2 seconds
+    private static final int REFRESH_INTERVAL = 2000; // 30 seconds
+    private ArrayList<String> customTypes = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_to_do);
 
-        // Initialize refresh handler
         refreshHandler = new Handler(Looper.getMainLooper());
-        
-        // Initialize views and buttons
+
         completeBtn = findViewById(R.id.completetodolist);
         reviewBtn = findViewById(R.id.reviewtodolist);
         progressBtn = findViewById(R.id.progresstodolist);
@@ -57,10 +58,16 @@ public class ToDoActivity extends AppCompatActivity {
         shelfbtn = findViewById(R.id.shelfbtn);
         profilebtn = findViewById(R.id.profilebtn);
         schedbtn = findViewById(R.id.schedbtn);
+        menuIcon = findViewById(R.id.menuIcon);
         openDialogButton = findViewById(R.id.addTaskButton);
         recyclerView = findViewById(R.id.taskRecyclerView);
 
         dbHelper = new DatabaseHelper(this);
+
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        if (userId != -1) {
+            customTypes = dbHelper.getCustomTaskTypes(userId);
+        }
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         taskList = new ArrayList<>();
@@ -72,7 +79,6 @@ public class ToDoActivity extends AppCompatActivity {
 
             @Override
             public void onDelete(Task task) {
-                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
                 dbHelper.deleteTask(task.getTitle(), userId);
                 reloadTasks(userId);
             }
@@ -80,14 +86,11 @@ public class ToDoActivity extends AppCompatActivity {
             @Override
             public void onCategoryChange(Task task, String newCategory) {
                 task.setCategory(newCategory);
-                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
                 dbHelper.updateTaskCategory(task.getTitle(), newCategory, userId);
                 adapter.notifyDataSetChanged();
             }
         });
         recyclerView.setAdapter(adapter);
-
-        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
 
         if (getIntent().hasExtra("filterCategory")) {
             currentCategory = getIntent().getStringExtra("filterCategory");
@@ -104,17 +107,78 @@ public class ToDoActivity extends AppCompatActivity {
         updateButtonStates(currentCategory);
         openDialogButton.setOnClickListener(v -> showAddTaskDialog());
 
-        // Navigation button listeners
         homebtn.setOnClickListener(v -> navigateTo(HomeActivity.class));
         shelfbtn.setOnClickListener(v -> navigateTo(ShelfActivity.class));
         profilebtn.setOnClickListener(v -> navigateTo(ProfileActivity.class));
         schedbtn.setOnClickListener(v -> navigateTo(ScheduleActivity.class));
 
-        // Category filter buttons
         completeBtn.setOnClickListener(v -> setCategoryFilter("Complete"));
         reviewBtn.setOnClickListener(v -> setCategoryFilter("Review"));
         progressBtn.setOnClickListener(v -> setCategoryFilter("Progress"));
         onHoldBtn.setOnClickListener(v -> setCategoryFilter("On Hold"));
+
+        menuIcon.setOnClickListener(v -> showTypeFilterPopupMenu());
+    }
+
+    private void showTypeFilterPopupMenu() {
+        PopupMenu popup = new PopupMenu(this, menuIcon);
+        popup.getMenuInflater().inflate(R.menu.type_filter_menu, popup.getMenu());
+
+        for (String type : customTypes) {
+            popup.getMenu().add(type);
+        }
+
+        popup.getMenu().add("Add New Type");
+        popup.getMenu().add("Clear Filter");
+
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+
+        popup.setOnMenuItemClickListener(item -> {
+            String title = item.getTitle().toString();
+
+            if (title.equals("Add New Type")) {
+                showAddTypeDialog();
+                return true;
+            } else if (title.equals("Clear Filter")) {
+                currentFilterType = null;
+                reloadTasks(userId);
+                Toast.makeText(this, "Filter cleared", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            filterTasksByType(title);
+            return true;
+        });
+
+        popup.show();
+    }
+
+    private void showAddTypeDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add New Task Type");
+
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        builder.setView(input);
+
+        builder.setPositiveButton("Add", (dialog, which) -> {
+            String newType = input.getText().toString().trim();
+            if (!newType.isEmpty()) {
+                int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+                if (userId != -1) {
+                    boolean success = dbHelper.addCustomTaskType(userId, newType);
+                    if (success) {
+                        customTypes.add(newType);
+                        Toast.makeText(ToDoActivity.this, "Type added successfully", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(ToDoActivity.this, "Failed to add type", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.show();
     }
 
     @Override
@@ -124,14 +188,9 @@ public class ToDoActivity extends AppCompatActivity {
     }
 
     private void filterTasksByType(String type) {
+        currentFilterType = type;
         int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
-        ArrayList<Task> filteredTasks = dbHelper.getTasksByType(userId, type);
-
-        taskList.clear();
-        taskList.addAll(filteredTasks);
-        adapter.notifyDataSetChanged();
-
-        // Show a message about the current filter
+        reloadTasks(userId);
         Toast.makeText(this, "Showing tasks for: " + type, Toast.LENGTH_SHORT).show();
     }
 
@@ -164,6 +223,7 @@ public class ToDoActivity extends AppCompatActivity {
 
     private void setCategoryFilter(String category) {
         currentCategory = category;
+        currentFilterType = null; // Clear type filter when changing category
         int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
         reloadTasks(userId);
         updateButtonStates(category);
@@ -216,17 +276,22 @@ public class ToDoActivity extends AppCompatActivity {
         Button dueDateButton = dialogView.findViewById(R.id.dueDateButton);
         Button backButton = dialogView.findViewById(R.id.backButton);
         Button doneButton = dialogView.findViewById(R.id.doneButton);
-
         Spinner typeSpinner = dialogView.findViewById(R.id.typeSpinner);
+
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        ArrayList<String> allTypes = dbHelper.getCustomTaskTypes(userId);
+        allTypes.add(0, "None");
+        allTypes.add(1, "Mobile Dev");
+        allTypes.add(2, "Web Dev");
+        allTypes.add(3, "Design");
+
+        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, allTypes);
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        typeSpinner.setAdapter(typeAdapter);
 
         final Calendar calendar = Calendar.getInstance();
         final String[] selectedDate = {""};
-
-
-        ArrayAdapter<CharSequence> typeAdapter = ArrayAdapter.createFromResource(this,
-                R.array.task_types, android.R.layout.simple_spinner_item);
-        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        typeSpinner.setAdapter(typeAdapter);
 
         dueDateButton.setOnClickListener(view -> {
             DatePickerDialog datePicker = new DatePickerDialog(ToDoActivity.this,
@@ -247,7 +312,7 @@ public class ToDoActivity extends AppCompatActivity {
             String taskDetailText = taskDetails.getText().toString().trim();
             String date = selectedDate[0];
             String type = typeSpinner.getSelectedItem().toString();
-            // Validation checks
+
             if (taskName.isEmpty()) {
                 Toast.makeText(this, "Please enter a task title", Toast.LENGTH_SHORT).show();
                 return;
@@ -261,7 +326,6 @@ public class ToDoActivity extends AppCompatActivity {
                 return;
             }
 
-            int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
             Task newTask = new Task(taskName, taskDetailText, formatDateForStorage(date), "None", "Progress", type);
             long taskId = dbHelper.insertTask(newTask, userId);
             newTask.setId((int) taskId);
@@ -277,8 +341,7 @@ public class ToDoActivity extends AppCompatActivity {
                 .setView(dialogView)
                 .setCancelable(false)
                 .create();
-        
-        // Remove the dialog background
+
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         dialog.show();
 
@@ -289,18 +352,24 @@ public class ToDoActivity extends AppCompatActivity {
         Button doneButton = dialogView.findViewById(R.id.doneButton);
         Spinner typeSpinner = dialogView.findViewById(R.id.typeSpinner);
 
-        // Set initial values
         taskNameInput.setText(task.getTitle());
         taskDetailsInput.setText(task.getDetails());
         dueDateButton.setText(formatDateForDisplay(task.getDate()));
 
-        // Setup type spinner
-        ArrayAdapter<CharSequence> typeAdapter = ArrayAdapter.createFromResource(this,
-                R.array.task_types, android.R.layout.simple_spinner_item);
+        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
+        ArrayList<String> allTypes = dbHelper.getCustomTaskTypes(userId);
+        allTypes.add(0, "None");
+        allTypes.add(1, "Mobile Dev");
+        allTypes.add(2, "Web Dev");
+        allTypes.add(3, "Design");
+
+        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, allTypes);
         typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         typeSpinner.setAdapter(typeAdapter);
+
         int typePosition = typeAdapter.getPosition(task.getType());
-        typeSpinner.setSelection(typePosition);
+        typeSpinner.setSelection(Math.max(typePosition, 0));
 
         final Calendar calendar = Calendar.getInstance();
         final String[] selectedDate = {task.getDate()};
@@ -325,7 +394,6 @@ public class ToDoActivity extends AppCompatActivity {
             String date = selectedDate[0];
             String type = typeSpinner.getSelectedItem().toString();
 
-            // Validation checks
             if (taskName.isEmpty()) {
                 Toast.makeText(this, "Please enter a task title", Toast.LENGTH_SHORT).show();
                 return;
@@ -339,23 +407,19 @@ public class ToDoActivity extends AppCompatActivity {
                 return;
             }
 
-            // Update task
             task.setTitle(taskName);
             task.setDetails(taskDetailText);
             task.setDate(formatDateForStorage(date));
             task.setType(type);
 
-            int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
             boolean success = dbHelper.updateTask(task, userId);
             if (success) {
                 Toast.makeText(this, "Task updated successfully", Toast.LENGTH_SHORT).show();
-                // Update the task in the list
                 int position = taskList.indexOf(task);
                 if (position != -1) {
                     taskList.set(position, task);
                     adapter.notifyItemChanged(position);
                 }
-                // Reload tasks to ensure everything is in sync
                 reloadTasks(userId);
                 dialog.dismiss();
             } else {
@@ -395,12 +459,17 @@ public class ToDoActivity extends AppCompatActivity {
     }
 
     private void reloadTasks(int userId) {
-        ArrayList<Task> tasks = dbHelper.getTasksByCategory(userId, currentCategory);
+        ArrayList<Task> tasks;
+
+        if (currentFilterType != null) {
+            tasks = dbHelper.getTasksByCategoryAndType(userId, currentCategory, currentFilterType);
+        } else {
+            tasks = dbHelper.getTasksByCategory(userId, currentCategory);
+        }
+
         taskList.clear();
         for (Task task : tasks) {
-            // Ensure each task has its ID set
             if (task.getId() <= 0) {
-                // If task doesn't have an ID, try to get it from the database
                 Task dbTask = dbHelper.getTaskById(task.getId(), userId);
                 if (dbTask != null) {
                     task.setId(dbTask.getId());
@@ -411,45 +480,17 @@ public class ToDoActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
-    private void showTypeFilterPopupMenu() {
-        PopupMenu popup = new PopupMenu(this, findViewById(R.id.menuIcon));
-        popup.getMenuInflater().inflate(R.menu.type_filter_menu, popup.getMenu());
-
-        // Get userId from SharedPreferences
-        int userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
-        popup.setOnMenuItemClickListener(item -> {
-            String type = "All"; // Default
-            if (item.getItemId() == R.id.filter_type_none) {
-                type = "None";
-            } else if (item.getItemId() == R.id.filter_type_mobile) {
-                type = "Mobile Dev";
-            } // ... other types
-
-            ArrayList<Task> filteredTasks = dbHelper.getTasksByType(userId, type);
-            taskList.clear();
-            taskList.addAll(filteredTasks);
-            adapter.notifyDataSetChanged();
-            return true;
-        });
-
-        popup.show();
-    }
-
-
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == EDIT_TASK_REQUEST && resultCode == RESULT_OK && data != null) {
-            // Get the updated task data
             int taskId = data.getIntExtra("TASK_ID", -1);
             String taskTitle = data.getStringExtra("TASK_TITLE");
             String taskDetails = data.getStringExtra("TASK_DETAILS");
             String taskDate = data.getStringExtra("TASK_DATE");
             String taskType = data.getStringExtra("TASK_TYPE");
 
-            // Find and update the task in the list
             for (int i = 0; i < taskList.size(); i++) {
                 Task task = taskList.get(i);
                 if (task.getId() == taskId) {

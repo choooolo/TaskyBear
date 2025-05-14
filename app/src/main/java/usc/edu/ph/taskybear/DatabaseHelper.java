@@ -14,7 +14,7 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "TaskyBear.db";
-    private static final int DATABASE_VERSION = 7; // New version number
+    private static final int DATABASE_VERSION = 8; // New version number
 
     // User table
     public static final String TABLE_USERS = "users";
@@ -86,12 +86,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_USER_ID + " INTEGER, "
                 + "FOREIGN KEY(" + COLUMN_USER_ID + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_ID + "))";
         db.execSQL(CREATE_TIMETABLE_TABLE);
+
+        String CREATE_TASK_TYPES_TABLE = "CREATE TABLE task_types (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "user_id INTEGER," +
+                "type_name TEXT)";
+        db.execSQL(CREATE_TASK_TYPES_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 6) {
+        if (oldVersion < 7) {
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_TIMETABLE);
+            db.execSQL("DROP TABLE IF EXISTS task_types");
             onCreate(db);
         }
     }
@@ -109,6 +116,36 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_USER_ID, userId);
 
         return db.insert(TABLE_TIMETABLE, null, values);
+    }
+
+    // Add these methods to your DatabaseHelper class
+    public boolean addCustomTaskType(int userId, String typeName) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("user_id", userId);
+        values.put("type_name", typeName);
+
+        long result = db.insert("task_types", null, values);
+        return result != -1;
+    }
+
+    public ArrayList<String> getCustomTaskTypes(int userId) {
+        ArrayList<String> types = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query("task_types",
+                new String[]{"type_name"},
+                "user_id=?",
+                new String[]{String.valueOf(userId)},
+                null, null, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                types.add(cursor.getString(0));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return types;
     }
 
     public List<TimetableEntry> getTimetableEntries(int userId) {
@@ -602,6 +639,36 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_CATEGORY)),
                         cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_TYPE))
                 );
+                tasks.add(task);
+            }
+            cursor.close();
+        }
+        db.close();
+        return tasks;
+    }
+
+    public ArrayList<Task> getTasksByCategoryAndType(int userId, String category, String type) {
+        ArrayList<Task> tasks = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(TABLE_TASKS,
+                new String[]{COLUMN_TASK_ID, COLUMN_TASK_TITLE, COLUMN_TASK_DETAILS,
+                        COLUMN_TASK_DATE, COLUMN_TASK_RESOURCE, COLUMN_TASK_CATEGORY, COLUMN_TASK_TYPE},
+                COLUMN_USER_ID + "=? AND " + COLUMN_TASK_CATEGORY + "=? AND " + COLUMN_TASK_TYPE + "=?",
+                new String[]{String.valueOf(userId), category, type},
+                null, null, null);
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                Task task = new Task(
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_TITLE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_DETAILS)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_DATE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_RESOURCE)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_CATEGORY)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TASK_TYPE))
+                );
+                task.setId(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_TASK_ID)));
                 tasks.add(task);
             }
             cursor.close();
