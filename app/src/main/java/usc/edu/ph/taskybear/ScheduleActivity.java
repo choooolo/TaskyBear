@@ -4,6 +4,7 @@ import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -61,10 +62,11 @@ public class ScheduleActivity extends AppCompatActivity {
 
         // Define time slots (30-minute intervals)
         String[] timeSlots = {
-                "07:30 AM", "08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM",
-                "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM",
-                "12:30 PM", "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
-                "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM"
+                "07:00 AM", "07:30 AM", "08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM",
+                "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
+                "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM",
+                "04:00 PM", "04:30 PM", "05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM",
+                "07:00 PM", "07:30 PM", "08:00 PM", "08:30 PM", "09:00 PM"
         };
 
         List<TimetableEntry> entries = dbHelper.getTimetableEntries(userId);
@@ -96,15 +98,26 @@ public class ScheduleActivity extends AppCompatActivity {
                 TimetableEntry entry = findEntryForTimeSlot(entries, dayName, timeSlot);
 
                 if (entry != null) {
+                    // Safely get indices
+                    Integer startIndex = timeSlotIndices.get(entry.getStartTime());
+                    Integer endIndex = timeSlotIndices.get(entry.getEndTime());
+
+                    if (startIndex == null || endIndex == null) {
+                        // Skip invalid time slots
+                        Log.e("ScheduleActivity", "Invalid time slot for entry: " + entry);
+                        continue;
+                    }
+
                     // Calculate how many time slots this class spans
-                    int startIndex = timeSlotIndices.get(entry.getStartTime());
-                    int endIndex = timeSlotIndices.get(entry.getEndTime());
                     int span = endIndex - startIndex;
 
                     // Mark all cells in this span as occupied
                     for (int j = startIndex; j < endIndex; j++) {
-                        occupied[j][day] = true;
+                        if (j < occupied.length) { // Additional safety check
+                            occupied[j][day] = true;
+                        }
                     }
+
 
                     // Only create cell for the first time slot of the class
                     if (i == startIndex) {
