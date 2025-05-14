@@ -15,14 +15,11 @@
         android:maxLines="1"
         android:minHeight="48dp" />
 
-    <EditText
-        android:id="@+id/classTypeInput"
+    <Spinner
+        android:id="@+id/typeSpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="Type (e.g., Lecture, Lab)"
-        android:inputType="textCapWords"
-        android:maxLines="1"
+        android:layout_marginBottom="8dp"
         android:minHeight="48dp" />
 
     <EditText

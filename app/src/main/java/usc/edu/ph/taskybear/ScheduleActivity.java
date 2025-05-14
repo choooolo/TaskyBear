@@ -2,6 +2,7 @@ package usc.edu.ph.taskybear;
 
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,6 +16,8 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -75,8 +78,8 @@ public class ScheduleActivity extends AppCompatActivity {
             timeSlotIndices.put(timeSlots[i], i);
         }
 
-        // Create a grid to track occupied cells
-        boolean[][] occupied = new boolean[timeSlots.length][6]; // 6 days
+        // Create a grid to track which cells should be merged
+        boolean[][] merged = new boolean[timeSlots.length][6]; // 6 days
 
         for (int i = 0; i < timeSlots.length; i++) {
             String timeSlot = timeSlots[i];
@@ -87,64 +90,59 @@ public class ScheduleActivity extends AppCompatActivity {
                 String dayName = getDayName(day);
                 TextView cell = new TextView(this);
 
-                // Check if this cell is already occupied by a multi-slot class
-                if (occupied[i][day]) {
+                // Skip if this cell is part of a merged class
+                if (merged[i][day]) {
                     cell.setVisibility(View.GONE);
                     row.addView(cell);
                     continue;
                 }
 
-                // Find class for this time slot and day
-                TimetableEntry entry = findEntryForTimeSlot(entries, dayName, timeSlot);
+                // Find all entries for this time slot and day
+                List<TimetableEntry> dayEntries = findEntriesForTimeSlot(entries, dayName, timeSlot);
 
-                if (entry != null) {
+                if (!dayEntries.isEmpty()) {
+                    // For simplicity, we'll just show the first entry if there are multiple
+                    // (you might want to handle overlapping classes differently)
+                    TimetableEntry entry = dayEntries.get(0);
+
                     // Safely get indices
                     Integer startIndex = timeSlotIndices.get(entry.getStartTime());
                     Integer endIndex = timeSlotIndices.get(entry.getEndTime());
 
-                    if (startIndex == null || endIndex == null) {
-                        // Skip invalid time slots
-                        Log.e("ScheduleActivity", "Invalid time slot for entry: " + entry);
-                        continue;
-                    }
+                    if (startIndex != null && endIndex != null) {
+                        // Calculate how many time slots this class spans
+                        int span = endIndex - startIndex;
 
-                    // Calculate how many time slots this class spans
-                    int span = endIndex - startIndex;
-
-                    // Mark all cells in this span as occupied
-                    for (int j = startIndex; j < endIndex; j++) {
-                        if (j < occupied.length) { // Additional safety check
-                            occupied[j][day] = true;
+                        // Mark all cells in this span as merged (except the first one)
+                        for (int j = startIndex + 1; j < endIndex; j++) {
+                            if (j < merged.length) {
+                                merged[j][day] = true;
+                            }
                         }
-                    }
 
+                        // Only create cell for the first time slot of the class
+                        if (i == startIndex) {
+                            cell.setText(entry.getClassName() + "\n" + entry.getLocation());
+                            cell.setBackgroundColor(getColorForCourse(entry.getClassName()));
+                            cell.setGravity(Gravity.CENTER);
+                            cell.setPadding(8, 8, 8, 8);
+                            cell.setTextColor(Color.WHITE);
 
-                    // Only create cell for the first time slot of the class
-                    if (i == startIndex) {
-                        cell.setText(entry.getClassName() + "\n" + entry.getLocation());
-                        cell.setBackgroundColor(getColorForCourse(entry.getClassName()));
-                        cell.setGravity(Gravity.CENTER);
-                        cell.setPadding(8, 8, 8, 8);
-                        cell.setTextColor(Color.WHITE);
+                            TableRow.LayoutParams params = new TableRow.LayoutParams(
+                                    TableRow.LayoutParams.MATCH_PARENT,
+                                    TableRow.LayoutParams.WRAP_CONTENT
+                            );
+                            params.height = span * 100; // Approximate height for each time slot
+                            cell.setLayoutParams(params);
 
-                        // For TableLayout, we need to manually set the height
-                        // by adding empty rows and making them invisible
-                        TableRow.LayoutParams params = new TableRow.LayoutParams(
-                                TableRow.LayoutParams.MATCH_PARENT,
-                                TableRow.LayoutParams.WRAP_CONTENT
-                        );
-                        // Calculate height based on span (30 minutes per slot)
-                        // You might need to adjust this multiplier based on your needs
-                        params.height = span * 100; // Approximate height for each time slot
-                        cell.setLayoutParams(params);
-
-                        // Set click listener
-                        final String finalDayName = dayName;
-                        final String finalTimeSlot = timeSlot;
-                        cell.setOnClickListener(v ->
-                                showClassOptionsDialog(finalDayName, finalTimeSlot, entry.getClassName()));
-                    } else {
-                        cell.setVisibility(View.GONE);
+                            // Set click listener
+                            final String finalDayName = dayName;
+                            final String finalTimeSlot = timeSlot;
+                            cell.setOnClickListener(v ->
+                                    showClassOptionsDialog(finalDayName, finalTimeSlot, entry));
+                        } else {
+                            cell.setVisibility(View.GONE);
+                        }
                     }
                 } else {
                     // Empty cell
@@ -163,6 +161,19 @@ public class ScheduleActivity extends AppCompatActivity {
             }
             tableLayout.addView(row);
         }
+    }
+
+    // Helper method to find all entries for a time slot (might return multiple if overlapping)
+    private List<TimetableEntry> findEntriesForTimeSlot(List<TimetableEntry> entries, String day, String timeSlot) {
+        List<TimetableEntry> result = new ArrayList<>();
+        for (TimetableEntry entry : entries) {
+            if (entry.getDay().equalsIgnoreCase(day) &&
+                    timeSlot.compareTo(entry.getStartTime()) >= 0 &&
+                    timeSlot.compareTo(entry.getEndTime()) < 0) {
+                result.add(entry);
+            }
+        }
+        return result;
     }
 
     private int getColorForCourse(String courseName) {
@@ -196,7 +207,6 @@ public class ScheduleActivity extends AppCompatActivity {
         return null;
     }
 
-
     private void showAddClassDialog() {
         showAddClassDialog("", "");
     }
@@ -209,7 +219,7 @@ public class ScheduleActivity extends AppCompatActivity {
         builder.setView(dialogView);
 
         EditText classNameInput = dialogView.findViewById(R.id.classNameInput);
-        EditText classTypeInput = dialogView.findViewById(R.id.classTypeInput);
+        Spinner typeSpinner = dialogView.findViewById(R.id.typeSpinner);
         EditText locationInput = dialogView.findViewById(R.id.locationInput);
         EditText startTimeInput = dialogView.findViewById(R.id.startTimeInput);
         EditText endTimeInput = dialogView.findViewById(R.id.endTimeInput);
@@ -220,6 +230,18 @@ public class ScheduleActivity extends AppCompatActivity {
         CheckBox thursdayCheck = dialogView.findViewById(R.id.thursdayCheck);
         CheckBox fridayCheck = dialogView.findViewById(R.id.fridayCheck);
         CheckBox saturdayCheck = dialogView.findViewById(R.id.saturdayCheck);
+
+        // Set up type spinner
+        ArrayList<String> allTypes = dbHelper.getCustomTaskTypes(userId);
+        allTypes.add(0, "None");
+        allTypes.add(1, "Mobile Dev");
+        allTypes.add(2, "Web Dev");
+        allTypes.add(3, "Design");
+
+        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, allTypes);
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        typeSpinner.setAdapter(typeAdapter);
 
         // Pre-select if coming from a specific day click
         if (!day.isEmpty()) {
@@ -240,12 +262,12 @@ public class ScheduleActivity extends AppCompatActivity {
 
         builder.setPositiveButton("Add", (dialog, which) -> {
             String className = classNameInput.getText().toString().trim();
-            String type = classTypeInput.getText().toString().trim();
+            String type = typeSpinner.getSelectedItem().toString();
             String location = locationInput.getText().toString().trim();
             String startTime = startTimeInput.getText().toString().trim();
             String endTime = endTimeInput.getText().toString().trim();
 
-            if (className.isEmpty() || type.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
+            if (className.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
                 Toast.makeText(ScheduleActivity.this, "Please fill all required fields", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -277,20 +299,23 @@ public class ScheduleActivity extends AppCompatActivity {
         builder.create().show();
     }
 
-    private void showClassOptionsDialog(String day, String time, String classInfo) {
-        String[] options = {"Edit", "Delete", "Cancel"};
+    private void showClassOptionsDialog(String day, String time, TimetableEntry entry) {
+        String[] options = {"View Tasks", "Edit", "Delete", "Cancel"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Class Options");
         builder.setItems(options, (dialog, which) -> {
             switch (which) {
                 case 0:
-                    editClass(day, time, classInfo);
+                    viewTasksForClass(entry);
                     break;
                 case 1:
-                    deleteClass(day, time);
+                    editClass(day, time, entry);
                     break;
                 case 2:
+                    deleteClass(day, time);
+                    break;
+                case 3:
                     dialog.dismiss();
                     break;
             }
@@ -298,27 +323,22 @@ public class ScheduleActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void editClass(String day, String time, String classInfo) {
+    private void viewTasksForClass(TimetableEntry entry) {
+        Intent intent = new Intent(this, ToDoActivity.class);
+        intent.putExtra("filterType", entry.getType());
+        startActivity(intent);
+    }
+
+    private void editClass(String day, String time, TimetableEntry entry) {
         List<TimetableEntry> entries = dbHelper.getTimetableEntries(userId);
-        TimetableEntry entryToEdit = null;
-
-        // Find the first matching entry (we'll edit all entries with the same class name and time)
-        for (TimetableEntry entry : entries) {
-            if (entry.getDay().equalsIgnoreCase(day) && entry.getStartTime().equals(time)) {
-                entryToEdit = entry;
-                break;
-            }
-        }
-
-        if (entryToEdit == null) return;
+        List<TimetableEntry> relatedEntries = new ArrayList<>();
 
         // Find all entries with the same class name and time (different days)
-        List<TimetableEntry> relatedEntries = new ArrayList<>();
-        for (TimetableEntry entry : entries) {
-            if (entry.getClassName().equals(entryToEdit.getClassName()) &&
-                    entry.getStartTime().equals(entryToEdit.getStartTime()) &&
-                    entry.getEndTime().equals(entryToEdit.getEndTime())) {
-                relatedEntries.add(entry);
+        for (TimetableEntry e : entries) {
+            if (e.getClassName().equals(entry.getClassName()) &&
+                    e.getStartTime().equals(entry.getStartTime()) &&
+                    e.getEndTime().equals(entry.getEndTime())) {
+                relatedEntries.add(e);
             }
         }
 
@@ -329,7 +349,7 @@ public class ScheduleActivity extends AppCompatActivity {
         builder.setView(dialogView);
 
         EditText classNameInput = dialogView.findViewById(R.id.classNameInput);
-        EditText classTypeInput = dialogView.findViewById(R.id.classTypeInput);
+        Spinner typeSpinner = dialogView.findViewById(R.id.typeSpinner);
         EditText locationInput = dialogView.findViewById(R.id.locationInput);
         EditText startTimeInput = dialogView.findViewById(R.id.startTimeInput);
         EditText endTimeInput = dialogView.findViewById(R.id.endTimeInput);
@@ -342,15 +362,30 @@ public class ScheduleActivity extends AppCompatActivity {
         CheckBox saturdayCheck = dialogView.findViewById(R.id.saturdayCheck);
 
         // Set current values
-        classNameInput.setText(entryToEdit.getClassName());
-        classTypeInput.setText(entryToEdit.getType());
-        locationInput.setText(entryToEdit.getLocation());
-        startTimeInput.setText(entryToEdit.getStartTime());
-        endTimeInput.setText(entryToEdit.getEndTime());
+        classNameInput.setText(entry.getClassName());
+        locationInput.setText(entry.getLocation());
+        startTimeInput.setText(entry.getStartTime());
+        endTimeInput.setText(entry.getEndTime());
+
+        // Set up type spinner with current type selected
+        ArrayList<String> allTypes = dbHelper.getCustomTaskTypes(userId);
+        allTypes.add(0, "None");
+        allTypes.add(1, "Mobile Dev");
+        allTypes.add(2, "Web Dev");
+        allTypes.add(3, "Design");
+
+        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, allTypes);
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        typeSpinner.setAdapter(typeAdapter);
+
+        // Set the current type
+        int typePosition = typeAdapter.getPosition(entry.getType());
+        typeSpinner.setSelection(Math.max(typePosition, 0));
 
         // Check the days that are currently selected
-        for (TimetableEntry entry : relatedEntries) {
-            switch (entry.getDay()) {
+        for (TimetableEntry e : relatedEntries) {
+            switch (e.getDay()) {
                 case "Monday": mondayCheck.setChecked(true); break;
                 case "Tuesday": tuesdayCheck.setChecked(true); break;
                 case "Wednesday": wednesdayCheck.setChecked(true); break;
@@ -365,12 +400,12 @@ public class ScheduleActivity extends AppCompatActivity {
 
         builder.setPositiveButton("Save", (dialog, which) -> {
             String className = classNameInput.getText().toString().trim();
-            String type = classTypeInput.getText().toString().trim();
+            String type = typeSpinner.getSelectedItem().toString();
             String location = locationInput.getText().toString().trim();
             String startTime = startTimeInput.getText().toString().trim();
             String endTime = endTimeInput.getText().toString().trim();
 
-            if (className.isEmpty() || type.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
+            if (className.isEmpty() || startTime.isEmpty() || endTime.isEmpty()) {
                 Toast.makeText(ScheduleActivity.this, "Please fill all required fields", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -390,8 +425,8 @@ public class ScheduleActivity extends AppCompatActivity {
             }
 
             // First delete all related entries
-            for (TimetableEntry entry : relatedEntries) {
-                dbHelper.deleteTimetableEntry(entry.getId());
+            for (TimetableEntry e : relatedEntries) {
+                dbHelper.deleteTimetableEntry(e.getId());
             }
 
             // Then add new entries for selected days
