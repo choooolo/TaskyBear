@@ -329,6 +329,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         return tasks;
     }
+    public boolean deleteTimetableEntry(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            int result = db.delete(TABLE_TIMETABLE, COLUMN_TIMETABLE_ID + "=?", new String[]{String.valueOf(id)});
+            return result > 0;
+        } finally {
+            db.close();
+        }
+    }
 
     public boolean deleteTask(String title, int userId) {
         SQLiteDatabase db = this.getWritableDatabase();
