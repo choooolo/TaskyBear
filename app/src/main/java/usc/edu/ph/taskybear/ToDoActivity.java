@@ -20,6 +20,7 @@ import android.widget.Spinner;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -230,40 +231,42 @@ public class ToDoActivity extends AppCompatActivity {
     }
 
     private void updateButtonStates(String selectedCategory) {
+        // Reset all buttons first
         resetButtonStyles();
 
+        // Set the active state for the selected category
         switch(selectedCategory) {
             case "Complete":
-                completeBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
-                completeBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                completeBtn.setBackgroundResource(R.drawable.circle_button_pressed);
+                completeBtn.setTextColor(ContextCompat.getColor(this, R.color.active_category_text));
                 break;
             case "Review":
-                reviewBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
-                reviewBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                reviewBtn.setBackgroundResource(R.drawable.circle_button_pressed);
+                reviewBtn.setTextColor(ContextCompat.getColor(this, R.color.active_category_text));
                 break;
             case "Progress":
-                progressBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
-                progressBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                progressBtn.setBackgroundResource(R.drawable.circle_button_pressed);
+                progressBtn.setTextColor(ContextCompat.getColor(this, R.color.active_category_text));
                 break;
             case "On Hold":
-                onHoldBtn.setBackgroundColor(getResources().getColor(R.color.active_category_bg));
-                onHoldBtn.setTextColor(getResources().getColor(R.color.active_category_text));
+                onHoldBtn.setBackgroundResource(R.drawable.circle_button_pressed);
+                onHoldBtn.setTextColor(ContextCompat.getColor(this, R.color.active_category_text));
                 break;
         }
     }
 
     private void resetButtonStyles() {
-        int defaultBg = getResources().getColor(R.color.default_category_bg);
-        int defaultText = getResources().getColor(R.color.default_category_text);
+        completeBtn.setBackgroundResource(R.drawable.circle_button_normal);
+        completeBtn.setTextColor(ContextCompat.getColor(this, R.color.default_category_text));
 
-        completeBtn.setBackgroundColor(defaultBg);
-        completeBtn.setTextColor(defaultText);
-        reviewBtn.setBackgroundColor(defaultBg);
-        reviewBtn.setTextColor(defaultText);
-        progressBtn.setBackgroundColor(defaultBg);
-        progressBtn.setTextColor(defaultText);
-        onHoldBtn.setBackgroundColor(defaultBg);
-        onHoldBtn.setTextColor(defaultText);
+        reviewBtn.setBackgroundResource(R.drawable.circle_button_normal);
+        reviewBtn.setTextColor(ContextCompat.getColor(this, R.color.default_category_text));
+
+        progressBtn.setBackgroundResource(R.drawable.circle_button_normal);
+        progressBtn.setTextColor(ContextCompat.getColor(this, R.color.default_category_text));
+
+        onHoldBtn.setBackgroundResource(R.drawable.circle_button_normal);
+        onHoldBtn.setTextColor(ContextCompat.getColor(this, R.color.default_category_text));
     }
 
     private void showAddTaskDialog() {
