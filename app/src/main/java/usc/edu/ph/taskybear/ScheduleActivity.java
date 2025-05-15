@@ -1,67 +1,62 @@
 package usc.edu.ph.taskybear;
 
 import android.app.TimePickerDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
-import android.widget.TimePicker;
-import android.widget.Toast;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.ArrayAdapter;
+import android.view.ViewGroup;
+import android.widget.*;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class ScheduleActivity extends AppCompatActivity {
-    private TableLayout tableLayout;
+    private RecyclerView recyclerView;
     private DatabaseHelper dbHelper;
     private Button addClassButton;
     private int userId;
+    private ScheduleAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_schedule);
+        setContentView(R.layout.activity_schedule_recyclerview);
 
-        tableLayout = findViewById(R.id.timetable);
+        recyclerView = findViewById(R.id.timetableRecyclerView);
         dbHelper = new DatabaseHelper(this);
         addClassButton = findViewById(R.id.addClassButton);
 
         userId = getSharedPreferences("TaskyPrefs", MODE_PRIVATE).getInt("userId", -1);
-        populateTimetable(userId);
+        setupRecyclerView();
+        loadScheduleData();
 
         addClassButton.setOnClickListener(v -> showAddClassDialog());
     }
 
-    private void populateTimetable(int userId) {
-        tableLayout.removeAllViews();
-        tableLayout.setStretchAllColumns(true);
+    private void setupRecyclerView() {
+        // 7 columns (time + 6 days)
+        GridLayoutManager layoutManager = new GridLayoutManager(this, 7);
+        recyclerView.setLayoutManager(layoutManager);
 
-        // Create header row
-        TableRow headerRow = new TableRow(this);
-        addHeaderCell(headerRow, "Time");
-        addHeaderCell(headerRow, "Monday");
-        addHeaderCell(headerRow, "Tuesday");
-        addHeaderCell(headerRow, "Wednesday");
-        addHeaderCell(headerRow, "Thursday");
-        addHeaderCell(headerRow, "Friday");
-        addHeaderCell(headerRow, "Saturday");
-        tableLayout.addView(headerRow);
+        adapter = new ScheduleAdapter();
+        recyclerView.setAdapter(adapter);
+    }
+
+    private void loadScheduleData() {
+        List<TimetableEntry> entries = dbHelper.getTimetableEntries(userId);
+        adapter.setData(createScheduleGrid(entries));
+    }
+
+    private List<ScheduleCell> createScheduleGrid(List<TimetableEntry> entries) {
+        List<ScheduleCell> cells = new ArrayList<>();
 
         // Define time slots (30-minute intervals)
         String[] timeSlots = {
@@ -72,128 +67,57 @@ public class ScheduleActivity extends AppCompatActivity {
                 "07:00 PM", "07:30 PM", "08:00 PM", "08:30 PM", "09:00 PM"
         };
 
-        List<TimetableEntry> entries = dbHelper.getTimetableEntries(userId);
-        Map<String, Integer> timeSlotIndices = new HashMap<>();
-        for (int i = 0; i < timeSlots.length; i++) {
-            timeSlotIndices.put(timeSlots[i], i);
-        }
+        // Add header row
+        cells.add(new ScheduleCell("Time", true, -1, -1, null));
+        cells.add(new ScheduleCell("Monday", true, -1, -1, null));
+        cells.add(new ScheduleCell("Tuesday", true, -1, -1, null));
+        cells.add(new ScheduleCell("Wednesday", true, -1, -1, null));
+        cells.add(new ScheduleCell("Thursday", true, -1, -1, null));
+        cells.add(new ScheduleCell("Friday", true, -1, -1, null));
+        cells.add(new ScheduleCell("Saturday", true, -1, -1, null));
 
-        // Create a grid to track which cells should be merged
-        boolean[][] merged = new boolean[timeSlots.length][6]; // 6 days
+        for (int timeIndex = 0; timeIndex < timeSlots.length; timeIndex++) {
+            // Add time column cell
+            cells.add(new ScheduleCell(timeSlots[timeIndex], false, -1, -1, null));
 
-        for (int i = 0; i < timeSlots.length; i++) {
-            String timeSlot = timeSlots[i];
-            TableRow row = new TableRow(this);
-            addTimeCell(row, timeSlot);
+            for (int dayIndex = 0; dayIndex < 6; dayIndex++) {
+                String dayName = getDayName(dayIndex);
+                String currentTime = timeSlots[timeIndex];
 
-            for (int day = 0; day < 6; day++) {
-                String dayName = getDayName(day);
-                TextView cell = new TextView(this);
+                // Find if this cell is part of any class
+                TimetableEntry entry = findEntryForTimeSlot(entries, dayName, currentTime);
 
-                // Skip if this cell is part of a merged class
-                if (merged[i][day]) {
-                    cell.setVisibility(View.GONE);
-                    row.addView(cell);
-                    continue;
-                }
+                if (entry != null) {
+                    // Check if this is the FIRST cell of the class
+                    boolean isFirstCell = entry.getStartTime().equals(currentTime);
 
-                // Find all entries for this time slot and day
-                List<TimetableEntry> dayEntries = findEntriesForTimeSlot(entries, dayName, timeSlot);
+                    // Text to display
+                    String cellText = isFirstCell
+                            ? entry.getClassName() + "\n" + entry.getLocation()
+                            : ""; // Continuation marker
 
-                if (!dayEntries.isEmpty()) {
-                    // For simplicity, we'll just show the first entry if there are multiple
-                    // (you might want to handle overlapping classes differently)
-                    TimetableEntry entry = dayEntries.get(0);
+                    // Calculate color based on class name
+                    int color = getColorForCourse(entry.getClassName());
 
-                    // Safely get indices
-                    Integer startIndex = timeSlotIndices.get(entry.getStartTime());
-                    Integer endIndex = timeSlotIndices.get(entry.getEndTime());
-
-                    if (startIndex != null && endIndex != null) {
-                        // Calculate how many time slots this class spans
-                        int span = endIndex - startIndex;
-
-                        // Mark all cells in this span as merged (except the first one)
-                        for (int j = startIndex + 1; j < endIndex; j++) {
-                            if (j < merged.length) {
-                                merged[j][day] = true;
-                            }
-                        }
-
-                        // Only create cell for the first time slot of the class
-                        if (i == startIndex) {
-                            cell.setText(entry.getClassName() + "\n" + entry.getLocation());
-                            cell.setBackgroundColor(getColorForCourse(entry.getClassName()));
-                            cell.setGravity(Gravity.CENTER);
-                            cell.setPadding(8, 8, 8, 8);
-                            cell.setTextColor(Color.WHITE);
-
-                            TableRow.LayoutParams params = new TableRow.LayoutParams(
-                                    TableRow.LayoutParams.MATCH_PARENT,
-                                    TableRow.LayoutParams.WRAP_CONTENT
-                            );
-                            params.height = span * 100; // Approximate height for each time slot
-                            cell.setLayoutParams(params);
-
-                            // Set click listener
-                            final String finalDayName = dayName;
-                            final String finalTimeSlot = timeSlot;
-                            cell.setOnClickListener(v ->
-                                    showClassOptionsDialog(finalDayName, finalTimeSlot, entry));
-                        } else {
-                            cell.setVisibility(View.GONE);
-                        }
-                    }
+                    cells.add(new ScheduleCell(
+                            cellText,
+                            false,
+                            1, // Each cell has span=1
+                            color,
+                            isFirstCell ? entry : null // Only store entry in first cell
+                    ));
                 } else {
                     // Empty cell
-                    cell.setText("");
-                    cell.setBackgroundResource(R.drawable.cell_border);
-                    cell.setPadding(8, 8, 8, 8);
-
-                    // Set click listener for adding new class
-                    final String finalDayName = dayName;
-                    final String finalTimeSlot = timeSlot;
-                    cell.setOnClickListener(v ->
-                            showAddClassDialog(finalDayName, finalTimeSlot));
+                    cells.add(new ScheduleCell("", false, -1, -1, null));
                 }
-
-                row.addView(cell);
-            }
-            tableLayout.addView(row);
-        }
-    }
-
-    // Helper method to find all entries for a time slot (might return multiple if overlapping)
-    private List<TimetableEntry> findEntriesForTimeSlot(List<TimetableEntry> entries, String day, String timeSlot) {
-        List<TimetableEntry> result = new ArrayList<>();
-        for (TimetableEntry entry : entries) {
-            if (entry.getDay().equalsIgnoreCase(day) &&
-                    timeSlot.compareTo(entry.getStartTime()) >= 0 &&
-                    timeSlot.compareTo(entry.getEndTime()) < 0) {
-                result.add(entry);
             }
         }
-        return result;
+        return cells;
     }
 
-    private int getColorForCourse(String courseName) {
-        // Generate consistent color based on course name
-        int hash = courseName.hashCode();
-        int color = Color.HSVToColor(new float[]{
-                Math.abs(hash % 360),
-                0.7f, // More saturation for better visibility
-                0.6f  // Slightly darker for better text contrast
-        });
-        return color;
-    }
-
-    private void addTimeCell(TableRow row, String time) {
-        TextView timeCell = new TextView(this);
-        timeCell.setText(time);
-        timeCell.setPadding(8, 8, 8, 8);
-        timeCell.setBackgroundResource(R.drawable.cell_border);
-        timeCell.setGravity(Gravity.CENTER);
-        row.addView(timeCell);
+    private String getDayName(int index) {
+        String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+        return days[index];
     }
 
     private TimetableEntry findEntryForTimeSlot(List<TimetableEntry> entries, String day, String timeSlot) {
@@ -207,6 +131,21 @@ public class ScheduleActivity extends AppCompatActivity {
         return null;
     }
 
+    private int getColorForCourse(String courseName) {
+        int hash = courseName.hashCode();
+        return Color.HSVToColor(new float[]{
+                Math.abs(hash % 360),
+                0.7f,
+                0.6f
+        });
+    }
+
+    private void populateTimetable(int userId) {
+        loadScheduleData();
+    }
+
+    // Rest of your methods (showAddClassDialog, showClassOptionsDialog, etc.) remain the same
+    // Only change the references from tableLayout to adapter and call loadScheduleData() after modifications
     private void showAddClassDialog() {
         showAddClassDialog("", "");
     }
@@ -487,35 +426,87 @@ public class ScheduleActivity extends AppCompatActivity {
         timePickerDialog.show();
     }
 
-    private String getDayName(int index) {
-        String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-        return days[index];
-    }
 
-    private String findClassForTimeSlot(List<TimetableEntry> entries, String day, String timeSlot) {
-        for (TimetableEntry entry : entries) {
-            if (entry.getDay().equalsIgnoreCase(day) && entry.getStartTime().equals(timeSlot)) {
-                return entry.getClassName() + "\n" + entry.getLocation();
+    private class ScheduleAdapter extends RecyclerView.Adapter<ScheduleAdapter.ScheduleViewHolder> {
+        private List<ScheduleCell> cells = new ArrayList<>();
+
+        public void setData(List<ScheduleCell> cells) {
+            this.cells = cells;
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        @Override
+        public ScheduleViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_schedule_cell, parent, false);
+            return new ScheduleViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ScheduleViewHolder holder, int position) {
+            ScheduleCell cell = cells.get(position);
+            holder.bind(cell);
+        }
+
+        @Override
+        public int getItemCount() {
+            return cells.size();
+        }
+
+        class ScheduleViewHolder extends RecyclerView.ViewHolder {
+            TextView cellText;
+
+            public ScheduleViewHolder(@NonNull View itemView) {
+                super(itemView);
+                cellText = itemView.findViewById(R.id.cellText);
+
+                // Set fixed dimensions for cells
+                int cellWidth = (int) (getResources().getDisplayMetrics().widthPixels * 0.28f);
+                int cellHeight = (int) (getResources().getDisplayMetrics().heightPixels * 0.08f);
+                itemView.setLayoutParams(new ViewGroup.LayoutParams(cellWidth, cellHeight));
+            }
+
+            public void bind(ScheduleCell cell) {
+                cellText.setText(cell.text);
+                cellText.setPadding(4, 4, 4, 4);
+
+                if (cell.isHeader) {
+                    cellText.setBackgroundColor(getResources().getColor(R.color.table_header));
+                    cellText.setTextColor(Color.BLACK);
+                } else if (cell.color != -1) {
+                    cellText.setBackgroundColor(cell.color);
+                    cellText.setTextColor(Color.WHITE);
+
+                    // Add click listener only for cells with entries
+                    if (cell.entry != null) {
+                        itemView.setOnClickListener(v -> {
+                            showClassOptionsDialog(cell.entry.getDay(),
+                                    cell.entry.getStartTime(),
+                                    cell.entry);
+                        });
+                    }
+                } else {
+                    cellText.setBackgroundResource(R.drawable.cell_border);
+                    cellText.setTextColor(Color.BLACK);
+                }
             }
         }
-        return "";
     }
 
-    private void addHeaderCell(TableRow row, String text) {
-        TextView textView = new TextView(this);
-        textView.setText(text);
-        textView.setPadding(8, 8, 8, 8);
-        textView.setBackgroundColor(getResources().getColor(R.color.table_header));
-        row.addView(textView);
-    }
+    private static class ScheduleCell {
+        String text;
+        boolean isHeader;
+        int span;
+        int color;
+        TimetableEntry entry;
 
-    private void addCell(TableRow row, String text, boolean withBorder) {
-        TextView textView = new TextView(this);
-        textView.setText(text);
-        textView.setPadding(8, 8, 8, 8);
-        if (withBorder) {
-            textView.setBackgroundResource(R.drawable.cell_border);
+        public ScheduleCell(String text, boolean isHeader, int span, int color, TimetableEntry entry) {
+            this.text = text;
+            this.isHeader = isHeader;
+            this.span = span;
+            this.color = color;
+            this.entry = entry;
         }
-        row.addView(textView);
     }
 }
